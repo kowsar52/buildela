@@ -2823,44 +2823,6 @@ function deleteUser(id) {
 }//delete user
 function deleteProfile(id) {
 
-    // swal({
-    //     title: 'Account Deletion Confirmation',
-	// 	text: 'Are you sure you want to delete your account?',
-    //     icon: 'info',
-    //     buttons: true,
-    //     dangerMode: true,
-    // }).then((result) => {
-
-    //     if (result) {
-    //         $.ajax({
-    //             url: "serverside/post.php",
-    //             type: "POST",
-    //             data: {
-    //                 func: 51,
-    //                 id: id,
-    //             },
-    //             success: function (data) {
-
-    //                 if (data.trim() == "true") {
-    //                     swal({
-    //                         icon: 'success',
-    //                         title: 'success',
-    //                         text: 'User delete successfully!',
-    //                     }).then((result) => {
-    //                         window.location.href="logout";
-    //                     });
-    //                 } else {
-    //                     swal({
-    //                         icon: 'error',
-    //                         title: 'Oops...',
-    //                         text: 'Failed to delete!'
-    //                     });
-    //                 }
-    //             }//success
-    //         });//ajax
-    //     }
-    // });
-
 
     (async () => {
         const confirmAccountDeletion = await Swal.fire({
@@ -4069,14 +4031,16 @@ $("#cancel_subscription").click(function (e){
                             title: 'success',
                             text: 'Subscription cancel successfully!',
                         }).then((result) => {
+                            $("#cancel_subscription").html(`Reactivate Subscription`);
                             location.reload();
                         });
-                    }else if (data.trim() == "not_cancel") {
+                    }else if (data.trim() == "false") {
                         swal({
                             icon: 'info',
                             title: 'Not Cancelled',
                             text: 'Failed to cancel your subscription !',
                         }).then((result) => {
+                            $("#cancel_subscription").html(`Cancel Subscription`);
                             location.reload();
                         });
                     }else if (data.trim() == "no_subscription") {
@@ -4085,6 +4049,7 @@ $("#cancel_subscription").click(function (e){
                             title: 'No subscription',
                             text: 'Subscription Id not found!',
                         }).then((result) => {
+                            $("#cancel_subscription").html(`Cancel Subscription`);
                             location.reload();
                         });
                     } else {
@@ -4092,10 +4057,11 @@ $("#cancel_subscription").click(function (e){
                             icon: 'error',
                             title: 'Oops...',
                             text: 'Failed to cancel!'
+                        }).then((result)=> {
+                            $("#cancel_subscription").html(`Cancel Subscription`);
+                            $("#cancel_subscription").prop('disabled', false);
                         });
                     }
-                    $("#cancel_subscription").html("Cancel Subscription");
-                    $("#cancel_subscription").prop('disabled', false);
 
                 }//success
             });//ajax
@@ -4103,6 +4069,38 @@ $("#cancel_subscription").click(function (e){
     });
 });
 
+
+$('#reactivate_account').click(function(e){
+    e.preventDefault();
+
+    $("#popular_search").show();
+        $.ajax({
+            url: baseURL + "/serverside/post.php",
+            type: "POST",
+            data: {
+                func: 121,
+            },
+            success:function(data){
+                var mydata = JSON.parse(data);
+                if (data.trim() == "false") {
+                    swal("Not Found ", "Not found any category", "error").then((value) => {
+
+                    });
+                } else {
+                    $('#scrolling-wrapper').html('');
+                    for(let i = 0; i <mydata.length ; i++){
+                        if((mydata[i].main_category.trim() != 'Other')) {
+
+                            $('#scrolling-wrapper').append(`
+                                        <span class="p-2 d-span" onclick= "setvalueofsearch('${mydata[i].main_category}')"> ${mydata[i].main_category} <i class="fa fa-angle-right bpsc"></i> </span>
+                                    `);
+                        }
+                    }
+                }
+            } //success
+        });
+
+});
 
 
 $("#search_main_type1").keyup(function (e){

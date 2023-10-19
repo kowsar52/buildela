@@ -1218,7 +1218,6 @@ input[type="file"] {
   max-width: 1300px;
   margin: 0 auto;
   position: relative;
-  z-index: -100;
 }
 .leads-inner {
   display: grid;

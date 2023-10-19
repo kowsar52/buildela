@@ -84,15 +84,10 @@ if($islogin):?>
     </div>
     <div class="f-account-image-wrapper-2"><img src="images/Buildela-2.png" loading="lazy" srcset="images/Buildela-2-p-500.png 500w, images/Buildela-2-p-800.png 800w, images/Buildela-2.png 800w" sizes="(max-width: 767px) 100vw, (max-width: 991px) 40vw, 45vw" alt="" class="f-image-cover-3"></div>
   </div>
-  
-<?php include_once "includes/footer-no-cta.php"?>
 
-<!-- <script src="https://www.gstatic.com/firebasejs/8.7.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.7.0/firebase-messaging.js"></script>
-
+  <script src="https://www.gstatic.com/firebasejs/9.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.14.0/firebase-messaging-compat.js"></script>
 <script>
-
-  // Replace with your Firebase project configuration
   const firebaseConfig = {
     apiKey: "AIzaSyDuQap5naiFqC5cZhXnE7Lc3__Ocs9ii5c",
     authDomain: "buildela-16a22.firebaseapp.com",
@@ -101,24 +96,24 @@ if($islogin):?>
     messagingSenderId: "26239317888",
     appId: "1:26239317888:web:b23fc9e04db2c62af1b365",
     measurementId: "G-SCB20XRVHG"
-  };
+};
+const app = firebase.initializeApp(firebaseConfig)
+const messaging = firebase.messaging()
+messaging.getToken({ vapidKey: "BOQcyOyo8cmgqiiTBktaSZvRTROCOXB-Ohx9KVmVQN0rg6-8WDRpRDSpk0agtVsK4lEV6Z9M2BvIG6IYceTpDkE" })
 
-  firebase.initializeApp(firebaseConfig);
 
-  // Use Firebase Messaging
-  const messaging = firebase.messaging();
-  messaging
-    .getToken()
-    .then((currentToken) => {
-      if (currentToken) {
-        // Send the FCM token to the server using an HTTP request
-        // Typically a POST request to your PHP endpoint
-        console.log(currentToken);
-      } else {
-        console.log('No FCM token available.');
-      }
-    })
-    .catch((error) => {
-      console.log('Error retrieving FCM token:', error);
-    });
-</script> -->
+messaging.onMessage((payload) => {
+    console.log('Message received ', payload);
+    const messagesElement = document.querySelector('.message')
+    const dataHeaderElement = document.createElement('h5')
+    const dataElement = document.createElement('pre')
+    dataElement.style = "overflow-x: hidden;"
+    dataHeaderElement.textContent = "Message Received:"
+    dataElement.textContent = JSON.stringify(payload, null, 2)
+    messagesElement.appendChild(dataHeaderElement)
+    messagesElement.appendChild(dataElement)
+})
+</script>
+
+
+<?php include_once "includes/footer-no-cta.php"?>

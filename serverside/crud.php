@@ -18,9 +18,9 @@ class Database {
     // private $db_name = "u786279181_buildela";
     // test live
    private $db_host = "localhost";  // Change as required
-   private $db_user = "root";  // Change as required
-   private $db_pass = "";  // Change as required
-   private $db_name = "buildela"; // Change as required
+   private $db_user = "u786279181_xbuild";  // Change as required
+   private $db_pass = "Build2024!";  // Change as required
+   private $db_name = "u786279181_xbuild"; // Change as required
 
 
     /*

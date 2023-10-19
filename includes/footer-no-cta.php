@@ -22,6 +22,7 @@
 
 
 
+
 <script type="text/javascript" src="<?php echo BASE_URL; ?>js/custom.js?v=1.011111838"></script>
 <script type="text/javascript" src="<?php echo BASE_URL; ?>js/wow.js"></script>
 <script type="text/javascript">
@@ -302,8 +303,6 @@
     });
 
 </script>
-
-
 
 <?php endif; ?>
 <?php include_once "includes/postajob.php"?>

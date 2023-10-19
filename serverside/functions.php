@@ -61,7 +61,7 @@ class Functions
         $this->db->sql($sql);
         $res = $this->db->numRows();
         if ($res > 0) {
-            return true;
+            return $this->db->getResult()[0];
         } else {
             return false;
         }
@@ -1365,6 +1365,263 @@ function getServices() {
 
         }
     }
+
+    function deleteStripeSubscription($user_id=null){
+
+        if(!$user_id)$user_id = $_SESSION['user_id'];
+        $settings             =   $this->getSettings();
+        $secret_key           = $settings[0]['stripe_private_key'];
+        include_once $_SERVER['DOCUMENT_ROOT']."/vendor/stripe/stripe-php/init.php";
+        
+        
+        try{
+            \Stripe\Stripe::setApiKey($secret_key);
+            $sql="select * from users where id='$user_id'";
+            
+            if($this->db->sql($sql)){
+                
+                $res=$this->db->getResult();
+                $subscription_id = $res[0]['cus_id_stripe'];
+                
+                if(!empty($subscription_id) ) {
+                
+                    $subscription = \Stripe\Subscription::retrieve($subscription_id);                    
+                    $subscription->cancel();
+                    
+                    if ($subscription->status != 'active') return true;
+                    else return false;
+                    
+                }else{
+                    return false;
+                }
+            }else{
+                return false;
+            }
+
+        }catch (Exception $exception){
+            return false;
+        }
+    }
+    
+    function stripeSubscriptionModifier($activate = 'on', $user_id = null){
+
+        
+        $settings             =   $this->getSettings();
+        $secret_key           = $settings[0]['stripe_private_key'];
+        include_once $_SERVER['DOCUMENT_ROOT']."/vendor/stripe/stripe-php/init.php";
+        
+        if(!$user_id){
+            $user_id = $_SESSION['user_id'];
+            try{
+                
+                \Stripe\Stripe::setApiKey($secret_key);
+                $sql="select * from users where id='$user_id'"; 
+                
+                if($this->db->sql($sql)){
+                    
+                    $res=$this->db->getResult();
+                    $subscription_id = $res[0]['cus_id_stripe'];
+                    
+                    if(!empty($subscription_id) ) {
+    
+                        $subscription = \Stripe\Subscription::retrieve($subscription_id);
+                        
+                        if ($activate == 'on') $subscription->cancel_at_period_end = false;
+                        elseif($activate == 'off') $subscription->cancel_at_period_end = true;
+                        $subscription->save();
+                        
+                        $check = \Stripe\Subscription::retrieve($subscription_id); 
+                        
+                        if ($check->status === 'active' && $check->cancel_at_period_end === false && $activate === 'on') {
+                            
+                            $sql = "update users set subscription_cancel=0 and subscription_status = 1 where id= '$user_id' ";
+                            if ($this->db->sql($sql)) {
+                                return "true";
+                            } else {
+                                $subscription->cancel_at_period_end = true;
+                                $subscription->save();
+                                return "false";
+                            }
+    
+                        } else {
+                            $sql = "update users set  subscription_cancel=1 and subscription_status = 0 where id= '$user_id' ";
+                            if ($this->db->sql($sql)) {
+                                return "true";
+                            } else {
+                                $subscription->cancel_at_period_end = false;
+                                $subscription->save();
+                                return "false";
+                            }
+                        }
+                    }else{
+                        return "no_subscription";
+                    }
+                }else{
+                    return "no_user";
+                }
+    
+            }catch (Exception $exception){
+                return "false";
+            }
+        } else {
+            try{
+                \Stripe\Stripe::setApiKey($secret_key);
+                $subscription = \Stripe\Subscription::retrieve($subscription_id);
+                        
+                if ($activate == 'on') $subscription->cancel_at_period_end = false;
+                elseif($activate == 'off') $subscription->cancel_at_period_end = true;
+                $subscription->save();
+                
+                $check = \Stripe\Subscription::retrieve($subscription_id); 
+                
+                if ($check->status === 'active' && $check->cancel_at_period_end === false && $activate === 'on') {
+                    
+                    $sql = "update users set subscription_cancel=0 and subscription_status = 1 where id= '$user_id' ";
+                    if ($this->db->sql($sql)) {
+                        return "true";
+                    } else {
+                        $subscription->cancel_at_period_end = true;
+                        $subscription->save();
+                        return "false";
+                    }
+
+                } else {
+                    $sql = "update users set  subscription_cancel=1 and subscription_status = 0 where id= '$user_id' ";
+                    if ($this->db->sql($sql)) {
+                        return "true";
+                    } else {
+                        $subscription->cancel_at_period_end = false;
+                        $subscription->save();
+                        return "false";
+                    }
+                }
+    
+            }catch (Exception $exception){
+    
+            }
+        }
+    }
+    
+    function stripeSubscriptionStatus($cusid=null, $user_id=null){
+        
+        if(!$cusid){
+            if(!$user_id)$user_id = $_SESSION['user_id'];
+            $settings             =   $this->getSettings();
+            $secret_key           = $settings[0]['stripe_private_key'];
+            include_once $_SERVER['DOCUMENT_ROOT']."/vendor/stripe/stripe-php/init.php";
+            
+            try{
+                
+                \Stripe\Stripe::setApiKey($secret_key);
+    
+                $sql="select * from users where id='$user_id'";
+                
+                if($this->db->sql($sql)){
+
+                    $res=$this->db->getResult();
+                    // Retrieve the subscription object from Stripe
+                    $subscription_id = $res[0]['cus_id_stripe'];
+                    
+                    if(!empty($subscription_id) ) {
+                        
+                        $subscription = \Stripe\Subscription::retrieve($subscription_id);                        
+                        if ($subscription->status == 'active' && $subscription->cancel_at_period_end == false) return true;
+                        else return false;
+                        
+                    }
+                }
+    
+            }catch (Exception $exception){
+    
+            }
+        }else {
+            $settings    =   $this->getSettings();
+            $secret_key  =   $settings[0]['stripe_private_key'];
+            include_once $_SERVER['DOCUMENT_ROOT']."/vendor/stripe/stripe-php/init.php";
+            
+            try{
+                
+                \Stripe\Stripe::setApiKey($secret_key);                        
+                $subscription = \Stripe\Subscription::retrieve($cusid);
+                
+                if ($subscription->status == 'active' && $subscription->cancel_at_period_end == false) return true;
+                else return false;
+    
+            }catch (Exception $exception){
+    
+            }
+        }
+    }
+
+    function stripeTrialCheck($customerId=null){
+
+        $user_id = $_SESSION['user_id'];
+        $settings             =   $this->getSettings();
+        $secret_key           = $settings[0]['stripe_private_key'];
+        include_once $_SERVER['DOCUMENT_ROOT']."/vendor/stripe/stripe-php/init.php";
+        
+        \Stripe\Stripe::setApiKey($secret_key);
+
+        try {            
+
+            $sql="select * from users where id='$user_id'";
+            $this->db->sql($sql);
+            $res=$this->db->getResult();
+            if(!$customerId) $customerId = $res[0]['cus_id_stripe'];
+
+            if($customerId){
+                $subscriptions = \Stripe\Subscription::all([
+                    'customer' => $customerId,
+                ]);
+        
+                if (!empty($subscriptions->data)) {
+                    $subscription = $subscriptions->data[0];
+                    if ($subscription->status === 'active' && $subscription->trial_end >= time()) {
+                        return true;
+                    }else {
+                        return false;
+                    }
+                }
+            }
+        } catch (\Stripe\Exception\ApiErrorException $e) {
+            return false;
+        }
+    }
+
+    function checkMoneybackPeriod($customerId=null){        
+
+        $user_id              = $_SESSION['user_id'];
+        $settings             =   $this->getSettings();
+        $secret_key           = $settings[0]['stripe_private_key'];
+        include_once $_SERVER['DOCUMENT_ROOT']."/vendor/stripe/stripe-php/init.php";
+        
+        \Stripe\Stripe::setApiKey($secret_key);
+
+        try {
+
+            $sql="select * from users where id='$user_id'";
+            $this->db->sql($sql);
+            $res=$this->db->getResult();
+            if(!$customerId) $customerId = $res[0]['cus_id_stripe'];
+            
+            if($customerId){
+
+                $subscription = \Stripe\Subscription::retrieve($subscription_id); 
+
+                $subscriptionStartDate = $subscription->current_period_start;
+                $currentDate = time();
+                $timeDifference = $currentDate - $subscriptionStartDate;
+                $daysDifference = floor($timeDifference / (60 * 60 * 24));
+                $isWithin14Days = $daysDifference <= 14;
+
+                return $isWithin14Days;
+            }
+        } catch (\Stripe\Exception\ApiErrorException $e) {
+            return false;
+        }
+    }
+
+
     function checktokenexist($token){
         $sql = "SELECT * from users WHERE reset_token='$token'";
         $this->db->sql($sql);
@@ -2635,7 +2892,7 @@ function sendNewBlogNotification($email,$link,$image,$title,$short_des){
 
 
     function batchDistance($origin, $batchcodes, $value = 'mile'){
-
+       
         // Radius of the Earth in kilometers
         $earthRadius = 6371;
 
@@ -2653,7 +2910,6 @@ function sendNewBlogNotification($email,$link,$image,$title,$short_des){
     
         $apiUrl = "https://api.postcodes.io/postcodes/$origin";
         $response = file_get_contents($apiUrl);
-    
         if ($response === false) {
             return false;
         } else {
@@ -2671,8 +2927,8 @@ function sendNewBlogNotification($email,$link,$image,$title,$short_des){
         $data = [
             "postcodes" => $batchcodes
         ];
-        
         $jsonData = json_encode($data);    
+  
         $ch = curl_init();
     
         // Set cURL options

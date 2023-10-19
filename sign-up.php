@@ -25,6 +25,7 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
     $usercurrencies   = $func->countryCurrency($userinfo['country']);
 
 
+
     if($usercurrencies['currency'] == 'GBP') {
 
         $monthlyprice   = $prices['monthly'];
@@ -54,12 +55,7 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
 
 ?>
 <script>
-    let monthlyprice        = parseInt(<?=  $monthlyprice ?>),
-        monthlyonyearly     = parseInt(<?=  $monthlyonyearly ?>),
-        yearlyprice         = parseInt(<?=  $yearlyprice ?>),
-        referralmonthly     = parseInt(<?=  $referralmonthly ?>),
-        referralyearly      = parseInt(<?=  $referralyearly ?>),
-        refmonthlyonyearly  = parseInt(referralyearly / 12);
+    
 </script>
 <script src="https://js.stripe.com/v3/"></script>
 <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
@@ -122,6 +118,21 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
         color: #006BF5;
     }
 
+    .new-sign-up-heading {
+        font-size: 1.89rem;
+    }
+
+    span#reffred_by {
+        color: #24aa3cd1;
+    }
+
+    .paymentbtns {
+        display: grid;
+        gap: 10px;
+        justify-content: space-between;
+        grid-template-columns: 1fr 2fr;
+        align-items: center;
+    }
 
 
 
@@ -207,9 +218,6 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
         position: absolute;
         width: 100%;
         z-index: 2;
-    }
-    .refitem {
-        display: none;
     }
 
 @media(max-width:480px){
@@ -735,13 +743,14 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
                                                 <div class="mt-4 w-100">
                                                     <h5 class="line"> Order Summary </h5>
                                                     <p class="d-flex justify-content-between"> Total <span id="cost_now"> <?= $currencysymbol.$yearlyprice;  ?></span></p>
-                                                    <p class="d-flex justify-content-between referral-dis refitem"> (-) Referreral Discount <span id="ref_dis"></span></p>
+                                                    <p class="d-flex justify-content-between referral-dis refitem">- Referreral Discount <span id="ref_dis"></span></p>
                                                     <h5 class="line refitem"></h5>
                                                     <?php $referaldiscount = ((int) $yearlyprice - (int) $referralyearly); ?>
-                                                    <p class="d-flex justify-content-between refitem"> Total billed now <span id="reftotal"> <?= $currencysymbol.$referaldiscount;  ?></span></p>
+                                                    <p class="d-flex justify-content-between refitem" style="font-weight: bold;"> Total billed now <span id="reftotal"> <?= $currencysymbol.$referaldiscount;  ?></span></p>
                                                 </div>
-                                                <div class="btn-div-general pt-3 text-center w-100">
-                                                    <button role="button" id="payment_btn" type="submit" class="f-button-neutral-3 w-button" >Start paid membership</button>
+                                                <div class="btn-div-general pt-3 text-center w-100 paymentbtns">
+                                                    <a class="back-btn btn-block text-center px-2 py-2 text-decoration-none font-weight-bold rounded" id="payment_back"><i class="fa-solid fa-arrow-left"></i> Back</a>
+                                                    <button role="button" id="payment_btn" type="submit" class="f-button-neutral-3 w-button">Start Membership</button> 
                                                 </div>
                                                 <div class="d-flex justify-content-center gap-2 my-3 align-items-center w-100"><svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="shield-check" class="svg-inline--fa fa-shield-check " role="img" width="16px" height="16px" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M466.5 83.71l-192-80c-4.875-2.031-13.16-3.703-18.44-3.703c-5.312 0-13.55 1.672-18.46 3.703L45.61 83.71C27.7 91.1 16 108.6 16 127.1C16 385.2 205.2 512 255.9 512C307.1 512 496 383.8 496 127.1C496 108.6 484.3 91.1 466.5 83.71zM352 200c0 5.531-1.901 11.09-5.781 15.62l-96 112C243.5 335.5 234.6 335.1 232 335.1c-6.344 0-12.47-2.531-16.97-7.031l-48-48C162.3 276.3 160 270.1 160 263.1c0-12.79 10.3-24 24-24c6.141 0 12.28 2.344 16.97 7.031l29.69 29.69l79.13-92.34c4.759-5.532 11.48-8.362 18.24-8.362C346.4 176 352 192.6 352 200z"></path></svg><div>Safe &amp; secure payment</div></div>
                                                 
@@ -758,7 +767,15 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
                                                     <p class="small text-muted">*Up to 5 trades per account</p>
                                                 </div>
                                                 <div class="order-summary-information">
-                                                    <p class="text-muted">By clicking the “Start Paid Membership” button below, you agree to our Terms & Conditions and that you are over 16 and acknowledge the Privacy Statement. You agree that your membership will begin immediately, and that you will not be able to withdraw from the contract and receive a refund. Buildela will automatically continue your membership and charge the membership fee (currently <?= $currencysymbol;  ?><span class="choosen_plan"><?= $yearlyprice;?></span>/month) to your payment method until you cancel. You may cancel at any time to avoid future charges.</p>
+                                                    <p class="text-muted">
+                                                        By clicking the “Start Paid Membership” button below, you confirm that you are at least 16 years of age, have 
+                                                        reviewed and accepted our Terms & Conditions, and acknowledged the Privacy Policy. Your membership will commence 
+                                                        immediately, and during the initial 2-week cooling-off period, you have the option to cancel and receive a refund 
+                                                        for annual or monthly subscriptions. Following this period, Buildela will automatically continue your membership 
+                                                        and charge the applicable membership fee (currently <span class="choosen_plan">£109.99/month</span>) to your chosen payment method on a recurring 
+                                                        basis, every 30 days for monthly subscriptions and every 365 days for annual subscriptions. You retain the right 
+                                                        to cancel your membership at any time to prevent future charges.
+                                                    </p>
                                                 </div>
                                             </div>
                                         </form>
@@ -843,6 +860,15 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
     let ref_dis_yearly = '<?= $referralyearly; ?>';
     let ref_monthly = '<?= $prices['referral_first_month_price']; ?>';
     let ref_yearly = '<?= $prices['referral_first_year_price']; ?>';
+
+    const monthlyprice        = parseFloat(removeNonDigits("<?= $monthlyprice ?>")),
+          monthlyonyearly     = parseFloat(removeNonDigits("<?= $monthlyonyearly ?>")),
+          yearlyprice         = parseFloat(removeNonDigits("<?= $yearlyprice ?>")),
+          referralmonthly     = parseFloat(removeNonDigits("<?= $referralmonthly ?>")),
+          referralyearly      = parseFloat(removeNonDigits("<?= $referralyearly ?>"));
+
+    let referaldiscount;
+
 
     $(".continue_btn_1").click(function (event) {
 
@@ -1179,6 +1205,7 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
     });
     $(".continue_btn_4").click(function(e){
         e.preventDefault();
+        let msign ='<?=$currencysymbol?>';
         if($("#from_referral_code").val()!=''){
             $.ajax({
                 url: "serverside/post.php",
@@ -1188,25 +1215,32 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
                     from_referral_code:$('#from_referral_code').val(),
                 },
                 success: function (data) {
-                    if (data.trim() != "no-referral") {
+                    if (data.trim() == "false") {
                         swal("Invalid referral Code!", "Referral code can't be found in the system.", "info").then((value) => {
                             $("#from_referral_code").val('');
                             $("#from_referral_code").focus();
                             return;
                         });
                     }else{
+                        let discount = (yearlyprice - referralyearly);
+
                         payamount=parseFloat($(".set_amount1").text());
                         if(counter == 0 ){
-                            $(".set_amount1").text(payamount-1);
+                            $(".set_amount1").text(payamount);
                             counter++;
 
                         }
 
                         referral = true;
-
                         $('.choosen_plan').text('<?=$referralyearly; ?>');
-                        $('.refitem').show();
-                        $("#refferral_text").show();
+                        $('.refitem').removeClass('d-none').addClass('d-flex');
+                        $(".f-h5-heading").html('You are referred by <span id="reffred_by">'+data.trim()+'</span>');
+
+                        $('#cost_now').text(msign+fixCommas(yearlyprice));
+                        $('#ref_dis').text(msign+fixCommas(discount));
+                        $('#reftotal').text(msign+fixCommas(referralyearly));
+
+
 
                         $(".sign-up-first-section").hide();
                         $(".sign-up-second-section").hide();
@@ -1228,6 +1262,14 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
             $(".sign-up-third-section").hide();
             $(".sign-up-four-section").hide();
             $(".sign-up-five-section").show();
+
+
+            referral = false;
+            $('.refitem').removeClass('d-flex').addClass('d-none');
+            $(".f-h5-heading").html('Register as a Pro');
+
+            $('#cost_now').text(msign+fixCommas(yearlyprice));
+            $('#reftotal').text(msign+fixCommas(referralyearly));
         }
 
 
@@ -1267,6 +1309,15 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
         $(".sign-up-five-section").hide();
 
     });
+    $('#payment_back').click(function(e){
+        e.preventDefault();
+        $('.f-h5-heading').text('Register as a pro');
+        $(".sign-up-first-section").hide();
+        $(".sign-up-second-section").hide();
+        $(".sign-up-third-section").hide();
+        $(".sign-up-four-section").show();
+        $(".sign-up-five-section").hide();
+    });
     $(document).ready( function(){
         $('#dbs_div').hide();
         $('.sign-up-first-section').show();
@@ -1276,74 +1327,8 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
         $('.sign-up-five-section').hide();
         $("#refferral_text").hide();
 
-        $("#country").change(function (e){
-            e.preventDefault();
-            let country=$("#country option:selected").val();
-            $(".currencysymbol").html('');
-
-
-            if(country != ''){
-
-                currencysymbol='£';
-
-                if(country=='UK'){
-                    currencysymbol='£';
-                }else if(country=='America'){
-                    currencysymbol='$';
-                }else if(country=='Australia'){
-                    currencysymbol='$';
-                }else if(country=='Canada'){
-                    currencysymbol='$';
-                }else if(country=='Ireland'){
-                    currencysymbol='€';
-                }else if(country=='Italy'){
-                    currencysymbol='€';
-                }else if(country=='South Africa'){
-                    currencysymbol='R';
-                }else if(country=='Turkey'){
-                    currencysymbol='₺';
-                }else if(country=='United Arab Emirates'){
-                    currencysymbol='د.إ';
-                }
-
-                $(".currencysymbol").html(currencysymbol);
-
-            }else {
-
-                $(".currencysymbol").html('£');
-            }
-
-        });
+        
     });
-
-
-    $(document).ready(function () {
-        $("#countryname").on("click", function () {
-            $(".country-search").show();
-        });
-
-        $("#countryname").on("change", function () {
-            $(".country-search").hide();
-        });
-
-        $("#countrySearch").keyup(function () {
-            var searchTerm = $(this).val().toLowerCase();
-
-            $("#countryname option").each(function () {
-            var optionText = $(this).text().toLowerCase();
-            if (optionText.indexOf(searchTerm) !== -1) {
-                $(this).show();
-            } else {
-                $(this).hide();
-            }
-            });
-        });
-
-        $("#countryname option").on("click", function () {
-            $(this).attr("selected", true);
-        });
-    });
-
     
 
     function planchanger(slector){
@@ -1351,54 +1336,56 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
         let cr_sym='<?=$currencysymbol?>';
         let plan; 
         if(slector=='monthly'){
-            
-            selector = 'monthly';
-            if(!referral){
-                plan= parseInt(monthlyprice);
-                $('#cost_now').html(cr_sym+monthlyprice);
-            }else {
-                let referaldiscount = (monthlyprice - referralmonthly)
-                plan= parseInt(referralmonthly);
-                $('#cost_now').html(cr_sym+referralmonthly);
-                $('#ref_dis').text(cr_sym+referaldiscount);
-                $('#reftotal').text(cr_sym+referralmonthly);
 
-                console.log('Yearly Discount: '+referaldiscount);
-                console.log('Yearly Discount: '+referralmonthly);
+            if(!referral){
+                $('#cost_now').html(cr_sym+decimalDigits(monthlyprice,2));
+            }else {
+                let ydiscount = (monthlyprice - referralmonthly);
+                $('#cost_now').html(cr_sym+decimalDigits(monthlyprice,2));
+                $('#ref_dis').text(cr_sym+decimalDigits(ydiscount,2));
+                $('#reftotal').text(cr_sym+decimalDigits(referralmonthly,2));
+                
+                
             }
-            $('.choosen_plan').text(plan);
+
+            selector = 'monthly';
+            $('.choosen_plan').text(cr_sym+monthlyprice+'/month');
             $('#plans').val(<?=$prices['monthly']?>);
 
         } else {
             
-            selector = 'yearly';
-
             if(!referral){
-                plan= parseInt(yearlyprice);
-                $('#cost_now').html(cr_sym+yearlyprice);
+                $('#cost_now').html(cr_sym+decimalDigits(yearlyprice,2));
             }else {
-                let referaldiscount = (yearlyprice - referralyearly);
-                plan= parseInt(referralyearly);
-                $('#cost_now').html(cr_sym+referralyearly);
-                $('#ref_dis').text(cr_sym+referaldiscount);
-                $('#reftotal').text(cr_sym+referralyearly);
+                let mdiscount = (yearlyprice - referralyearly);
 
-                console.log('Yearly Discount: '+referaldiscount);
-                console.log('Yearly Discount: '+referralyearly);
+                $('#cost_now').html(cr_sym+ decimalDigits(yearlyprice,2));
+                $('#ref_dis').text(cr_sym+decimalDigits(mdiscount, 2));
+                $('#reftotal').text(cr_sym+decimalDigits(referralyearly,2));
+
             }
-            $('.choosen_plan').text(plan);
+
+            selector = 'yearly';
+            $('.choosen_plan').text(cr_sym+yearlyprice+'/year');
             $('#plans').val(<?=$prices['yearly']?>);
             
         }
 
+    }
 
-        console.log('monthlyprice: '+monthlyprice);
-        console.log('monthlyonyearly: '+monthlyonyearly);
-        console.log('yearlyprice: '+yearlyprice);
-        console.log('referralmonthly: '+referralmonthly);
-        console.log('referralyearly: '+referralyearly);
-        console.log('refmonthlyonyearly: '+refmonthlyonyearly);
+    function removeNonDigits(moneyString) {
+        return moneyString.replace(/[^0-9.]/g, '');
+    }
 
+
+    function fixCommas(amount){
+        return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    function decimalDigits(amount, decimalPlaces) {
+        var multiplier = Math.pow(10, decimalPlaces);
+        var formattedAmount = (Math.round(amount * multiplier) / multiplier).toFixed(decimalPlaces);
+        return formattedAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
 </script>

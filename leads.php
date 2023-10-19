@@ -1,5 +1,5 @@
 <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css">
-<link href="css/style.css?v=3.03" rel="stylesheet" type="text/css">
+<link href="css/style.css?v=<?php echo time(); ?>" rel="stylesheet" type="text/css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/css/lightbox.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
 <style type="text/css">
@@ -135,6 +135,10 @@
 
     }
 
+    .w-dropdown-list {
+        z-index: 10;
+    }
+
     
 
 </style>
@@ -245,6 +249,7 @@ $leadfilter         =   null;
 if(isset($_GET['id']) & isset($_GET['i'])){
 
     
+
 }
 
 // Read unread satatus setup closed ------------------------------
@@ -1580,6 +1585,7 @@ a.lead-detail-link {
 }
 .main_leads_container_image{
     position: relative;
+    z-index: 1;
 }
 .main_leads_container_loader{
     display: grid;

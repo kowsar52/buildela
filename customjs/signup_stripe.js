@@ -125,11 +125,10 @@ form.addEventListener('submit', function(event) {
                                             userid:data.userid,
                                             object:data.result,
                                             cus_stripe_id:data.cus_stripe_id,
+                                            chargeId:data.chargeId,
                                             amount:amount,
                                         },
                                         success: function (response){
-
-                                            console.log(data);
 
                                             if(response.trim()=="true"){
                                                 swal("Register!", "You are registered successfully, please head to your profile and take the quiz on your selected trade!", "success").then((value) => {

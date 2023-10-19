@@ -1700,7 +1700,7 @@ else if ($func == 37) {
     
     
     $object = new stdClass();
-    
+    $trial = strtotime('+14 days'); 
     
 
     if(($user_info[0]['referral_code_used']== 0)&&($user_info[0]['from_referral_code'] !="" )){
@@ -1730,31 +1730,34 @@ else if ($func == 37) {
             
         }
         
-
+        
         $subscription = \Stripe\Subscription::create([
             'customer' => $customer->id,
             'items' => [['plan' => $plan->id]],
             'coupon' => $coupon->id,
+            // 'trial_end' => $trial
         ]);
         
         
 
     }else{
-
+        
         $subscription = \Stripe\Subscription::create([
             'customer' => $customer->id,
             'items' => [['plan' => $plan->id]],
+            'trial_end' => $trialEndTimestamp,
         ]);
 
-    }
-    
+    }    
+
+    $latestInvoice = \Stripe\Invoice::retrieve($subscription->latest_invoice);
+    $chargeId = $latestInvoice->charge;
 
     $subsData = $subscription->jsonSerialize();
 
     if ($subsData['status'] == 'active') {
 
         $cus_stripe_id =$subsData['id'];
-
 
         $sql = "update users set cus_id_stripe='$cus_stripe_id',referral_code_used='$referral_code_used' where id='$user_id'";
         $db->sql($sql);
@@ -1764,6 +1767,7 @@ else if ($func == 37) {
         $object->userid = $user_id;
         $object->result = $subsData;
         $object->cus_stripe_id=$cus_stripe_id;
+        $object->chargeId = $chargeId;
         $object->msg = "success";
         echo json_encode($object);
     }else{
@@ -1806,6 +1810,7 @@ else if ($func == 38) {
     $json_object = json_encode($object);
     $final_amount = $amount;
     $cus_stripe_id=$_POST['cus_stripe_id'];
+    $chargeId=$_POST['chargeId'];
 
     $user_info=$Functions->UserInfo($user_id);
     $from_referral_code=$user_info[0]['from_referral_code'];
@@ -1826,7 +1831,7 @@ else if ($func == 38) {
     $sql ="update users set referral_code_used='$referral_code_used', subscription_type='$s_type',subscription_cancel=0 , subscription_status=1 , subscription_date='$start_date' , subscription_end='$end_date' where id='$user_id' ";
     $db->sql($sql);
 
-    $create_transaction = "INSERT INTO `transactions`(`tranx_id`,`payment_amount`, `payment_status`, `user_id`,`payment_type`,`object`,`s_type`) VALUES ('$cus_stripe_id','$final_amount','$status_stripe','$user_id','$tranx_type','$json_object','$s_type')";
+    $create_transaction = "INSERT INTO `transactions`(`tranx_id`,`charge_id`,`payment_amount`, `payment_status`, `user_id`,`payment_type`,`object`,`s_type`) VALUES ('$cus_stripe_id','$chargeId','$final_amount','$status_stripe','$user_id','$tranx_type','$json_object','$s_type')";
 
     if ($db->sql($create_transaction)) {
         echo "true";
@@ -1834,15 +1839,9 @@ else if ($func == 38) {
         echo "false";
     }
 }else if ($func == 381) {
-$user_id = $_SESSION['user_id'];
 
-
-    $subscription_status = 0;
-
-    $sql = "UPDATE users SET subscription_status = '$subscription_status' WHERE id = '$user_id'";
-    $db->sql($sql);
-
-    echo "Subscription status updated successfully";
+    echo $Functions->stripeSubscriptionModifier('on');
+    exit;
 }
 //upload gallery
 else if ($func == 39) {
@@ -2238,19 +2237,19 @@ else if ($func == 51) {
     switch ($surveyAnswer_val) {
         case 0:
             $surveyAnswer = 'Unhappy with the service that we are offering.';
-        break;
+            break;
         case 1:
             $surveyAnswer = 'Frustrated with our customer service team.';
-        break;
+            break;
         case 2:
             $surveyAnswer = 'Too expensive.';
-        break;
+            break;
         case 3:
             $surveyAnswer = 'Found another service offering a more suitable product.';
-        break;
+            break;
         case 4:
             $surveyAnswer = 'Not winning enough leads.';
-        break;
+            break;
     }
     $id = $db->escapeString($id);
     $deleted_users_table = "canceled_users_new";
@@ -2266,6 +2265,9 @@ else if ($func == 51) {
     // insert the data 
     $db->sql("INSERT INTO $deleted_users_table 
               SELECT *,NOW() AS day_left, '$surveyAnswer' AS reason_left FROM users WHERE id='$id'");
+    
+    $Functions->deleteStripeSubscription();
+    
     $sql = "DELETE from users where id='$id'";
     if ($db->sql($sql)) {
 
@@ -2275,9 +2277,6 @@ else if ($func == 51) {
         $sql = "DELETE from verify_skill where user_id='$id'";
         $db->sql($sql);
 
-//        $sql = "DELETE from transactions where user_id='$id'";
-//        $db->sql($sql);
-
         $sql = "DELETE from post_job where user_id='$id'";
         $db->sql($sql);
 
@@ -2286,9 +2285,9 @@ else if ($func == 51) {
 
         $sql = "DELETE from apply_job where user_id='$id'";
         $db->sql($sql);
-
-
+        
         echo "true";
+        
     }
     else {
         echo "false";
@@ -2592,7 +2591,6 @@ else if ($func == 64) {
     $id = $db->escapeString($id);
     $sql = "update post_job set status=1 where id='$id'";
     if ($db->sql($sql)) {
-
         echo "true";
     }
     else {
@@ -2605,8 +2603,10 @@ else if ($func == 65) {
     $from_referral_code = htmlspecialchars(stripslashes($_POST['from_referral_code']));
     $from_referral_code = $db->escapeString($from_referral_code);
 
-    if ($Functions->CheckReferralCodeExists($from_referral_code)) {
-        echo "no-referral";
+    $refdetails = $Functions->CheckReferralCodeExists($from_referral_code); 
+    
+    if ($refdetails) {
+        echo $refdetails['fname'];
     }
     else {
         echo "false";
@@ -3107,6 +3107,11 @@ else if ($func == 77) {
 
 else if ($func == 78) {
 
+
+    echo $Functions->stripeSubscriptionModifier('off');
+
+    exit;
+
     $user_id=$_SESSION['user_id'];
 
     $settings=$Functions->getSettings();
@@ -3123,7 +3128,6 @@ else if ($func == 78) {
             $subscription_id = $res[0]['cus_id_stripe'];
             if(!empty($subscription_id) ) {
                 $subscription = \Stripe\Subscription::retrieve($subscription_id);
-
                 $subscription->cancel();
 
                 $subscription_status = \Stripe\Subscription::retrieve($subscription_id);
@@ -4310,5 +4314,8 @@ else if ($func == 120) {
         echo "false";
     }
 
+}
+else if($func == 121){
+    
 }
 ?>

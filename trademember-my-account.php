@@ -87,9 +87,7 @@ if(isset($_SESSION['user_id']) && $_SESSION['user_role']=='jobs_person' ) {
     }
 
     #reactivate_subscription{
-        display:none;
         color: #fff;
-
     }
     .btn.months-winner-btn {
         background-color: #006bf5;
@@ -119,6 +117,35 @@ if(isset($_SESSION['user_id']) && $_SESSION['user_role']=='jobs_person' ) {
     #plans {
         margin-top: -3px;
         margin-bottom: 30px;
+    }
+    .checkout-terms {margin-top: 50px;}
+
+    .checkout-terms h2 {
+        font-size: 1.2rem;
+        color: #211f54;
+    }
+
+    .checkout-terms p {
+        font-size: 0.78rem;
+        color: #6e7191;
+    }
+
+    .checkout-terms h3 {
+        font-size: 1rem;
+        color: #211f54;
+    }
+    .checkout-terms li {
+        list-style: none;
+        padding-left: 20px;
+        position: relative;
+        color: #6e7191;
+    }
+    .checkout-terms li::before {
+        content: "\2192";
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        left: 0px;
     }
 </style>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
@@ -365,7 +392,7 @@ if(isset($_SESSION['user_id']) && $_SESSION['user_role']=='jobs_person' ) {
                                                 $('#cost_now').html(cr_sym+'<?= $monthlyprice ?>');
                                                 var plan=<?= $monthlyprice ?>;
                                                 $('.choose_plan').val(plan);
-                                                $('.choose_plan_dec').val(plan-1);
+                                                $('.choose_plan_dec').val(plan);
                                             }
                                             else
                                             {
@@ -374,7 +401,7 @@ if(isset($_SESSION['user_id']) && $_SESSION['user_role']=='jobs_person' ) {
                                                 $('#cost_now').html(cr_sym+'<?=$yearlyprice?>');
                                                 var plan=<?=$yearlyprice?>;
                                                 $('.choose_plan').val(plan);
-                                                $('.choose_plan_dec').val(plan-1);
+                                                $('.choose_plan_dec').val(plan);
                                             }
                                         }
                                         
@@ -431,14 +458,30 @@ if(isset($_SESSION['user_id']) && $_SESSION['user_role']=='jobs_person' ) {
                                             if(($user[0]['subscription_cancel']==0) && ($user[0]['subscription_status']==1) ){
                                                 ?>
                                                 <div class="btn-div-general pt-3 text-center cancel_button">
-                                                    <button role="button" id="cancel_subscription" type="button" class="btn-bg-general btn-block text-white text-center px-5 py-2 text-decoration-none font-weight-bold rounded " >Cancel Subscription</button>
+                                                    <?php if($func->stripeSubscriptionStatus()):?>
+                                                        <button role="button" id="cancel_subscription" type="button" class="btn-bg-general btn-block text-white text-center px-5 py-2 text-decoration-none font-weight-bold rounded " >Cancel Subscription</button>
+                                                    <?php else:?>
+                                                        <button role="button" id="reactivate_subscription" type="button" class="btn-bg-general btn-block text-white text-center px-5 py-2 text-decoration-none font-weight-bold rounded " >Reactivate Subscription</button>
+                                                    <?php endif;?>
+                                                </div>
+                                                <div class="checkout-terms">
+                                                    <h2>Cancelling Terms & Conditions</h2>
+                                                    <p>By clicking Cancel Subscription, you agree to the following:</p>
+                                                    <h3>Subscription Cancellation:</h3>
+                                                    <li>Cancelling after 14 days retains data and ends the subscription (no refund).</li>
+                                                    <li>Cancelling within 14 days ends the subscription (refund given), but access to the leads page is lost.</li>
                                                 </div>
                                                 <?php
-                                            }
+                                            }else {
                                             ?>
                                             <div class="btn-div-general pt-3 text-center reactivete ">
-                                                <button role="button" id="reactivate_subscription" type="button" class="btn-bg-general btn-block text-white text-center px-5 py-2 text-decoration-none font-weight-bold rounded " >Reactivate Subscription</button>
+                                                <?php if($func->stripeSubscriptionStatus()):?>
+                                                    <button role="button" id="cancel_subscription" type="button" class="btn-bg-general btn-block text-white text-center px-5 py-2 text-decoration-none font-weight-bold rounded " >Cancel Subscription</button>
+                                                <?php else:?>
+                                                    <button role="button" id="reactivate_subscription" type="button" class="btn-bg-general btn-block text-white text-center px-5 py-2 text-decoration-none font-weight-bold rounded " >Reactivate Subscription</button>
+                                                <?php endif;?>
                                             </div>
+                                            <?php } ?>
 
                                         </div>
 
@@ -604,17 +647,14 @@ if(isset($_SESSION['user_id']) && $_SESSION['user_role']=='jobs_person' ) {
 
     function reactivateSubscription() {
         // assuming you have user_id stored somewhere
-        var user_id = " <?= $_SESSION['user_id']?>";
-
         $.ajax({
             url: "../serverside/post.php",
             type: "POST",
             data: {
-                func: 381,
-                user_id: user_id,
+                func: 381
             },
             success: function (data) {
-                if (data.trim() == "Subscription status updated successfully") {
+                if (data.trim() == "true") {
                     swal({
                         icon: 'success',
                         title: 'Success',

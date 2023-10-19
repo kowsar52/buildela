@@ -1505,6 +1505,8 @@ $('.owl-carousel').owlCarousel({
 </div>
 <input id="country1" type="hidden" >
 <?php include_once "includes/footer.php"?>
+
+
 <script>
     $(document).ready(function() {
         // Set the desired value

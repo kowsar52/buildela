@@ -96,7 +96,7 @@ if($temp_country=="United States"){
   <meta charset="utf-8">
 
  <title><?php echo $pageTitle ?? $defaultTitle ?></title>
-    <meta name="description" content="<?php echo $pageDescription ?? $defaultDescription ?>">
+<meta name="description" content="<?php echo $pageDescription ?? $defaultDescription ?>">
 
   
   <meta content="Buildela - Website" property="og:title">
@@ -127,19 +127,6 @@ if($temp_country=="United States"){
 <link rel="icon" type="image/x-icon" href="<?php echo BASE_URL; ?>images/fav-icon.ico">
 <!--<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@200;300;400;600;900&display=swap" rel="stylesheet">-->
 
-<script>
-    if ('serviceWorker' in navigator) {
-        console.log('serviceWorker');
-        navigator.serviceWorker.register('../buildela/firebase-messaging-sw.js')
-        .then((registration) => {
-        //Service Worker registration successful
-        console.log('success')
-        })
-        .catch((error) => {
-        console.error('Service Worker registration failed:', error);
-        });
-    }
-</script>
 
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700;900&family=Poppins:wght@300;400;500;700&display=swap" rel="stylesheet">
 

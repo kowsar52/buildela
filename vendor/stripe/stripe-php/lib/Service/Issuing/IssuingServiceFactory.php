@@ -11,7 +11,6 @@ namespace Stripe\Service\Issuing;
  * @property CardholderService $cardholders
  * @property CardService $cards
  * @property DisputeService $disputes
- * @property TokenService $tokens
  * @property TransactionService $transactions
  */
 class IssuingServiceFactory extends \Stripe\Service\AbstractServiceFactory
@@ -24,7 +23,6 @@ class IssuingServiceFactory extends \Stripe\Service\AbstractServiceFactory
         'cardholders' => CardholderService::class,
         'cards' => CardService::class,
         'disputes' => DisputeService::class,
-        'tokens' => TokenService::class,
         'transactions' => TransactionService::class,
     ];
 
