@@ -1,0 +1,6 @@
+1-> ALTER TABLE `users` ADD `qualification` VARCHAR(255) NULL DEFAULT NULL AFTER `dbs_path`;
+2-> ALTER TABLE `comment` ADD `lname` VARCHAR(100) NULL DEFAULT NULL AFTER `email`, ADD `phone` VARCHAR(50) NULL DEFAULT NULL AFTER `lname`;
+3-> ALTER TABLE `users` ADD `hired_counter` INT NULL DEFAULT '0' AFTER `post_code`;
+4-> ALTER TABLE `users` ADD `pub_insurance` VARCHAR(100) NULL DEFAULT NULL AFTER `qualification`, ADD `pub_insurance_date` DATE NULL DEFAULT NULL AFTER `pub_insurance`, ADD `pro_insurance` VARCHAR(100) NULL DEFAULT NULL AFTER `pub_insurance_date`, ADD `pro_insurance_date` DATE NULL DEFAULT NULL AFTER `pro_insurance`;
+5-> ALTER TABLE `rateuser` ADD `job_title` VARCHAR(255) NOT NULL AFTER `job_id`;
+6-> ALTER TABLE `rateuser` ADD `from_user_id` INT NULL DEFAULT NULL AFTER `user_id`;
