@@ -1027,7 +1027,7 @@ INSERT INTO `sub_category` (`id`, `main_category`, `category_name`, `status`, `c
 
 CREATE TABLE `transactions` (
   `tid` int(6) NOT NULL,
-  `tranx_id` varchar(50) DEFAULT NULL,
+  `stripe_subscription_id` varchar(50) DEFAULT NULL,
   `payment_amount` float DEFAULT NULL,
   `payment_status` varchar(25) DEFAULT NULL,
   `user_id` varchar(6) DEFAULT NULL,
@@ -1045,7 +1045,7 @@ CREATE TABLE `transactions` (
 
 CREATE TABLE `users` (
   `id` int(6) NOT NULL,
-  `cus_id_stripe` varchar(255) NOT NULL,
+  `stripe_subscription_id` varchar(255) NOT NULL,
   `status` int(4) NOT NULL DEFAULT 1,
   `user_type` int(4) NOT NULL DEFAULT 2,
   `user_role` varchar(30) NOT NULL,
@@ -1087,7 +1087,7 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `cus_id_stripe`, `status`, `user_type`, `user_role`, `fname`, `lname`, `email`, `phone`, `password`, `builder1`, `builder2`, `operate`, `company_name`, `company_number`, `trading_name`, `search_address`, `work_address`, `town`, `post_code`, `hired_counter`, `distance`, `reset_token`, `img_path`, `dbs_path`, `qualification`, `pub_insurance`, `pub_insurance_date`, `pro_insurance`, `pro_insurance_date`, `note`, `work_area`, `subscription_type`, `subscription_status`, `subscription_date`, `subscription_end`, `create_date`) VALUES
+INSERT INTO `users` (`id`, `stripe_subscription_id`, `status`, `user_type`, `user_role`, `fname`, `lname`, `email`, `phone`, `password`, `builder1`, `builder2`, `operate`, `company_name`, `company_number`, `trading_name`, `search_address`, `work_address`, `town`, `post_code`, `hired_counter`, `distance`, `reset_token`, `img_path`, `dbs_path`, `qualification`, `pub_insurance`, `pub_insurance_date`, `pro_insurance`, `pro_insurance_date`, `note`, `work_area`, `subscription_type`, `subscription_status`, `subscription_date`, `subscription_end`, `create_date`) VALUES
 (1, '', 1, 1, '', 'Admin', 'user', 'admin@gmail.com', '+447222555555', '827ccb0eea8a706c4c34a16891f84e7b', 0, 1, 'Self-employed', NULL, NULL, 'Testuser', '', 'Lahore__Pakistan', 'Lahore', 'M2 1BB', 0, 3, NULL, '../uploads/1668076775-l2.jpeg', '../uploads/1668076719-l1.jpeg', 'BSSE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, '2022-11-10 10:38:39');
 
 -- --------------------------------------------------------

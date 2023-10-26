@@ -597,7 +597,8 @@ $("#login-form").submit(function (event) {
         data: {
             func: 6,
             email: $("#email").val(),
-            password: $("#pass").val()
+            password: $("#pass").val(),
+            web_fcm : $("#web_fcm_token").val(),
         },
         success: function (data) {
             if (data.trim() == "true") {
@@ -4013,7 +4014,7 @@ $("#cancel_subscription").click(function (e){
         /* Read more about isConfirmed, isDenied below */
         if (result) {
 
-            $("#cancel_subscription").html(`Please wait <i class="fa fa-spinner fa-spin" style="font-size:24px"></i>`);
+            $("#cancel_subscription").html(`Please wait  <i class="fa fa-spinner fa-spin" style="font-size:24px"></i>`);
             $("#cancel_subscription").prop('disabled', true);
 
 
@@ -4052,7 +4053,34 @@ $("#cancel_subscription").click(function (e){
                             $("#cancel_subscription").html(`Cancel Subscription`);
                             location.reload();
                         });
-                    } else {
+                    }else if (data.trim() == "refunded") {
+                        swal({
+                            icon: 'success',
+                            title: 'Subscriptions Canceled!',
+                            text: 'Your subscription is canceled and a refund request is created.',
+                        }).then((result) => {
+                            $("#cancel_subscription").remove();
+                            location.reload();
+                        });
+                    }else if (data.trim() == "cant-refund") {
+                        swal({
+                            icon: 'error',
+                            title: 'Error refunding the money!',
+                            text: 'There are some error in the payment gateway.',
+                        }).then((result) => {
+                            $("#cancel_subscription").remove();
+                            location.reload();
+                        });
+                    }else if (data.trim() == "refunded-not-cancelled") {
+                        swal({
+                            icon: 'error',
+                            title: 'Refunded but subscripiton is not cancelled!',
+                            text: 'We are having some trouble to cancel this subscription please try again.',
+                        }).then((result) => {
+                            $("#cancel_subscription").remove();
+                            location.reload();
+                        });
+                    }else {
                         swal({
                             icon: 'error',
                             title: 'Oops...',

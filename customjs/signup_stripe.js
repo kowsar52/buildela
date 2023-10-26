@@ -25,7 +25,7 @@ var style = {
 //
 
 // Create an instance of the card Element.
-var card = elements.create('card', {style: style});
+var card = elements.create('card', {hidePostalCode: true, style: style});
 
 // Add an instance of the card Element into the `card-element` <div>.
 card.mount('#card-element');
@@ -115,6 +115,8 @@ form.addEventListener('submit', function(event) {
 
                                 data=JSON.parse(data);
 
+                                console.log(data);
+
                                 if(data.success){
                                     $.ajax({
                                         url:"serverside/post.php",
@@ -124,8 +126,11 @@ form.addEventListener('submit', function(event) {
                                             func:38,
                                             userid:data.userid,
                                             object:data.result,
-                                            cus_stripe_id:data.cus_stripe_id,
+                                            subs_id:data.subs_id,
+                                            customer_id:data.customer_id,
+                                            invoiceid:data.invoiceid,
                                             chargeId:data.chargeId,
+                                            chargedamount:data.chargedamount,
                                             amount:amount,
                                         },
                                         success: function (response){

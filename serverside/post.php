@@ -352,6 +352,9 @@ else if ($func == 6) {
     $password = htmlspecialchars(stripslashes($_POST['password']));
     $password = $db->escapeString($password);
 
+    $web_fcm = htmlspecialchars(stripslashes($_POST['web_fcm']));
+    $web_fcm = $db->escapeString($web_fcm);
+
     $hashpass = md5($password);
     $sql = "SELECT * FROM users WHERE email='$email' and password='$hashpass'";
     if ($db->sql($sql)) {
@@ -389,6 +392,10 @@ else if ($func == 6) {
                     }
                 }
                 $Functions->setOnlineStatus($result[0]["id"]);
+                if($web_fcm != ""){
+                    $Functions->setFcmToken($result[0]["id"],$web_fcm);
+                }
+               
 
             } else {
                 echo "false";
@@ -1551,7 +1558,7 @@ else if ($func == 370) {
     include "../vendor/stripe/stripe-php/init.php";
     \Stripe\Stripe::setApiKey($secret_key);
 
-    $subscription_id = $_POST['cus_stripe_id']; // Assuming this is actually a Subscription ID now
+    $subscription_id = $_POST['cus_sub_id']; // Assuming this is actually a Subscription ID now
 
     // Fetch the subscription object
     $subscription = \Stripe\Subscription::retrieve($subscription_id);
@@ -1582,7 +1589,7 @@ else if ($func == 370) {
     include "../vendor/stripe/stripe-php/init.php";
     \Stripe\Stripe::setApiKey($secret_key);
 
-    // Note the change here from 'cus_stripe_id' to 'subscription_id'
+    // Note the change here from 'cus_sub_id' to 'subscription_id'
     $subscription_id = $_POST['subscription_id'];
 
     if(empty($subscription_id) || strpos($subscription_id, 'cus') === 0) {
@@ -1610,7 +1617,7 @@ else if ($func == 370) {
     include "../vendor/stripe/stripe-php/init.php";
     \Stripe\Stripe::setApiKey($secret_key);
 
-    $subscription_id = $_POST['cus_stripe_id']; 
+    $subscription_id = $_POST['cus_sub_id']; 
 
     // Fetch the subscription object
     $subscription = \Stripe\Subscription::retrieve($subscription_id);
@@ -1750,26 +1757,34 @@ else if ($func == 37) {
 
     }    
 
-    $latestInvoice = \Stripe\Invoice::retrieve($subscription->latest_invoice);
-    $chargeId = $latestInvoice->charge;
+    $invoice        = \Stripe\Invoice::retrieve($subscription->latest_invoice);
+    $invoiceId      = $invoice->id;
+    $chargedamount  = $Functions->stripeFloat($invoice->amount_paid);
+    $chargeId       = $invoice->charge;
+    $chargeId       = $invoice->charge;
+    $cumtomerId     = $customer->id;
 
     $subsData = $subscription->jsonSerialize();
 
     if ($subsData['status'] == 'active') {
 
-        $cus_stripe_id =$subsData['id'];
+        $subscriptionId =$subsData['id'];
 
-        $sql = "update users set cus_id_stripe='$cus_stripe_id',referral_code_used='$referral_code_used' where id='$user_id'";
+        $sql = "update users set stripe_customer_id='$cumtomerId', stripe_subscription_id='$subscriptionId',referral_code_used='$referral_code_used' where id='$user_id'";
         $db->sql($sql);
 
         $object = new stdClass();
         $object->success = true;
         $object->userid = $user_id;
         $object->result = $subsData;
-        $object->cus_stripe_id=$cus_stripe_id;
+        $object->subs_id=$subscriptionId;
+        $object->customer_id=$cumtomerId;
+        $object->invoiceid = $invoiceId;
         $object->chargeId = $chargeId;
+        $object->chargedamount = $chargedamount;
         $object->msg = "success";
         echo json_encode($object);
+
     }else{
         $object = new stdClass();
         $object->success = false;
@@ -1787,8 +1802,6 @@ else if ($func == 38) {
     $monthly = $Functions->getplans('monthly', false);
     $yearly  = $Functions->getplans('yearly', false);
 
-    $amount = htmlspecialchars(stripslashes($_POST['amount']));
-
     if($amount == $monthly){
 
         $day=30;
@@ -1804,16 +1817,18 @@ else if ($func == 38) {
         $end_date = date('Y-m-d', strtotime("+" . $year . "days"));
     }   
 
-    $status_stripe = 'COMPLETED';
-    $tranx_type = "stripe";
-    $object = $_POST['object'];
-    $json_object = json_encode($object);
-    $final_amount = $amount;
-    $cus_stripe_id=$_POST['cus_stripe_id'];
-    $chargeId=$_POST['chargeId'];
-
-    $user_info=$Functions->UserInfo($user_id);
-    $from_referral_code=$user_info[0]['from_referral_code'];
+    $status_stripe      = 'COMPLETED';
+    $tranx_type         = "stripe";
+    $object             = $_POST['object'];
+    $json_object        = json_encode($object);
+    $subs_id            = htmlspecialchars(stripslashes($_POST['subs_id']));
+    $customerId         = htmlspecialchars(stripslashes($_POST['customer_id']));
+    $amount             = htmlspecialchars(stripslashes($_POST['amount']));
+    $chargedamount      = htmlspecialchars(stripslashes($_POST['chargedamount']));
+    $chargeId           = htmlspecialchars(stripslashes($_POST['chargeId']));
+    $invoiceid          = htmlspecialchars(stripslashes($_POST['invoiceid']));
+    $user_info          = $Functions->UserInfo($user_id);
+    $from_referral_code = $user_info[0]['from_referral_code'];
 
     if(isset($from_referral_code) && ($from_referral_code!="") && ($user_info[0]['referral_code_used']==0) ){
         $user=$Functions->getuserbyRefferal($from_referral_code);
@@ -1831,13 +1846,14 @@ else if ($func == 38) {
     $sql ="update users set referral_code_used='$referral_code_used', subscription_type='$s_type',subscription_cancel=0 , subscription_status=1 , subscription_date='$start_date' , subscription_end='$end_date' where id='$user_id' ";
     $db->sql($sql);
 
-    $create_transaction = "INSERT INTO `transactions`(`tranx_id`,`charge_id`,`payment_amount`, `payment_status`, `user_id`,`payment_type`,`object`,`s_type`) VALUES ('$cus_stripe_id','$chargeId','$final_amount','$status_stripe','$user_id','$tranx_type','$json_object','$s_type')";
+    $sql = "INSERT INTO `transactions`(`stripe_invoice_id`,`stripe_subscription_id`,`stripe_charge_id`,`payment_amount`, `payment_status`, `user_id`,`payment_type`,`object`,`s_type`) VALUES ('$invoiceid', '$subs_id','$chargeId','$chargedamount','$status_stripe','$user_id','$tranx_type','$json_object','$s_type')";
 
-    if ($db->sql($create_transaction)) {
+    if ($db->sql($sql)) {
         echo "true";
     } else {
         echo "false";
     }
+    
 }else if ($func == 381) {
 
     echo $Functions->stripeSubscriptionModifier('on');
@@ -2591,6 +2607,63 @@ else if ($func == 64) {
     $id = $db->escapeString($id);
     $sql = "update post_job set status=1 where id='$id'";
     if ($db->sql($sql)) {
+         ######## NOTIFICATION START ########
+        //select post_job main_type 
+        $sql = "SELECT post_job.main_type, post_job.title,post_job.location, main_category.category_name  FROM post_job LEFT JOIN main_category ON main_category.id = post_job.main_type WHERE post_job.id = '$id'";
+        if($db->sql($sql)){
+            $data = $db->getResult()[0];
+            
+            $main_type =$data['main_type'];
+            $job_title =$data['title'];
+            $location =$data['location'];
+            $category_name =$data['category_name'];
+
+               
+            //select all users who have verified skills match with the job also the user is verified
+            $sql = "SELECT users.id,users.user_role,users.web_fcm,users.mobile_fcm,users.post_code,users.status,users.create_date, verify_skill.main_category, verify_skill.status , verify_skill.verify
+            FROM users
+            JOIN verify_skill ON verify_skill.user_id = users.id
+            WHERE verify_skill.status = 1 AND verify_skill.verify = 1 AND users.user_role = 'jobs_person' AND verify_skill.main_category = '$main_type' AND users.status = 1 ORDER BY users.create_date ASC";
+        
+            if ($db->sql($sql)) {
+                $result = $db->getResult();
+                
+                $notify_user_tokens = [];
+                if ($db->numRows() > 0) {
+                    foreach ($result as $row) {
+                        //push web_fcm and mobile_fcm to array
+                        if ($row['web_fcm'] != '') {
+                            $notify_user_tokens[] = $row['web_fcm'];
+                        }
+                        if ($row['mobile_fcm'] != '') {
+                            $notify_user_tokens[] = $row['mobile_fcm'];
+                        }
+                    }
+                }
+            
+        
+            
+                $title = 'You have a new ' . $category_name . ' lead in ' . $location;
+                $body =  'You have a new ' . $category_name . ' lead in ' . $location . ': ' . $job_title;
+        
+                $notification = [
+                    'title' => $title,
+                    'body' => $body
+                ];
+                
+                if(count($notify_user_tokens) > 0){
+                    $Functions->sendNotification($notify_user_tokens, $notification);
+                }
+            
+            
+            }else{
+                echo "true";
+                exit;
+            }
+        }
+        ######## NOTIFICATION END ########
+
+
         echo "true";
     }
     else {
@@ -3107,54 +3180,18 @@ else if ($func == 77) {
 
 else if ($func == 78) {
 
-
-    echo $Functions->stripeSubscriptionModifier('off');
-
-    exit;
-
-    $user_id=$_SESSION['user_id'];
-
-    $settings=$Functions->getSettings();
-    $secret_key = $settings[0]['stripe_private_key'];
-    include_once "../vendor/stripe/stripe-php/init.php";
-    try{
-        \Stripe\Stripe::setApiKey($secret_key);
-
-        $sql="select * from users where id='$user_id'";
-        if($db->sql($sql)){
-            $res=$db->getResult();
-
-            // Retrieve the subscription object from Stripe
-            $subscription_id = $res[0]['cus_id_stripe'];
-            if(!empty($subscription_id) ) {
-                $subscription = \Stripe\Subscription::retrieve($subscription_id);
-                $subscription->cancel();
-
-                $subscription_status = \Stripe\Subscription::retrieve($subscription_id);
-                if ($subscription_status->status != 'active') {
-
-                    $sql = "update users set  subscription_cancel=1 and subscription_status = 0 where id= '$user_id' ";
-
-                    if ($db->sql($sql)) {
-                        echo "true";
-                    } else {
-                        echo "false";
-                    }
-
-                } else {
-                    echo "not_cancel";
-                }
-            }else{
-
-                echo "no_subscription";
-            }
-        }else{
-            echo "false";
+    if($Functions->checkMoneybackPeriod()){
+        if($Functions->stripeRefund()) {
+            if($Functions->deleteStripeSubscription()) echo "refunded";
+            else echo "refunded-not-cancelled";
+        }else {
+            echo "cant-refund";
         }
-
-    }catch (Exception $exception){
-
+            
+    }else {
+        echo $Functions->stripeSubscriptionModifier('off');
     }
+    exit;
 
 }
 
@@ -4191,6 +4228,7 @@ else if ($func == 113) {
     $userID         =   $_SESSION['user_id'];
     $tradeUserID    =   $_POST['userid'];
     $jobid          =   $_POST['jobid'];
+    $
     $new_messages   =   $Functions->getAllNewChatesforme($userID);
     $tradeUsrMsg    =   $Functions->getAllNewChatesbyjobs_person($tradeUserID, $jobid);
     $currentURL     =   $_POST['url'];
@@ -4243,7 +4281,6 @@ else if ($func == 116) {
     $send['uid']     = $userid;
     $send['update'] = $Functions->updateTyping($userid, $typingStatus);
     
-    // $send['check'] = $Functions->checkTypingStatus(116, 122);
     echo json_encode($send);
     exit;
 
@@ -4316,6 +4353,143 @@ else if ($func == 120) {
 
 }
 else if($func == 121){
+
+    $monthly = $Functions->getplans('monthly', false);
+    $yearly  = $Functions->getplans('yearly', false);
+    
+    $settings=$Functions->getSettings();
+    $secret_key = $settings[0]['stripe_private_key'];
+    include "../vendor/stripe/stripe-php/init.php";
+
+    $stripe         = new \Stripe\StripeClient($secret_key);
+    $post           = $Functions->sanitizeInput($_POST);
+    $user_id        = $_SESSION['user_id'];
+    $amount         = $post['amount'];
+
+    $userinfo       = $Functions->UserInfo($user_id)[0];
+    $customerId     = $userinfo['stripe_customer_id']; 
+    $subscriptionId = $userinfo['stripe_subscription_id']; 
+    $planid         = null;  
+    
+    
+    if($amount == $monthly) {
+
+        $plan = $stripe->plans->create([
+            'product'   => ['name' => 'Buildela Subscription '],
+            'currency'  => 'GBP',
+            'interval'  => 'month',
+            'amount'    =>  ($monthly * 100),
+        ]);
+
+        $plan = $stripe->plans->create([
+            'product'   => 'prod_OKrsHOzTZL63ml',
+            'currency'  => 'GBP',
+            'interval'  => 'month',
+            'amount'    =>  ($monthly * 100),
+        ]);
+
+    } else if($amount == $yearly) {
+
+        $plan = $stripe->plans->create([
+            'product'   => ['name' => 'Buildela Subscription '],
+            'currency'  => 'GBP',
+            'interval'  => 'year',
+            'amount'    =>  ($yearly * 100),
+        ]);
+        
+        $plan = $stripe->plans->create([
+            'product'   => 'prod_OKrxYesuq47hZt',
+            'currency'  => 'GBP',
+            'interval'  => 'year',
+            'amount'    =>  ($yearly * 100),
+        ]);
+    }
+    
+    
+
+    $currentSubs = $stripe->subscriptions->retrieve( $subscriptionId, [] );
+    $currentPeriodEnd = $currentSubs->current_period_end;
+
+
+    $subscription = $stripe->subscriptions->create([
+        'customer' => $customerId,
+        'items' => [
+            ['plan' => $plan->id],
+        ],
+    ]);
+    
+    $updatenew = $stripe->subscriptions->update(
+        $subscription->id,
+        ['billing_cycle_anchor' => $currentPeriodEnd]
+    );
+    
+    if($currentSubs->status == 'active'){
+        $updateformer = $stripe->subscriptions->update(
+            $subscriptionId,
+            ['cancel_at_period_end' => true]
+        );
+    }
+    
+    if($subscription->id){
+        $sql = "UPDATE users SET stripe_subscription_id='$subscription->id' WHERE id=$user_id";
+        if ($db->sql($sql)) echo json_encode(['success'=> true]);
+        exit;
+    }else {
+        echo json_encode(['success'=> false]);
+    }
+
+
+}
+
+else if($func == 122){
+    $send = [];
+    $post = $Functions->sanitizeInput($_POST);
+    $last4 = $post['last4'];
+    $fieldsToOmit = array("func", "last4");
+
+    foreach ($fieldsToOmit as $field) {
+        if (isset($post[$field])) {
+            unset($post[$field]);
+        }
+    }
+
+    $update = $Functions->updateCard($post, $last4);
+
+    echo json_encode($update);
+    exit;
+}
+
+else if($func == 123){
+    $send   = [];
+    $post   = $Functions->sanitizeInput($_POST);    
+    $arr    = ['name' => $post['name']];
+    $token  = $post['token'];
+
+    $addcard = $Functions->addCard($token);
+    $update  = $Functions->updateCard($arr, $addcard->last4);
+    
+    if($addcard && $update) echo json_encode($update);
+    exit;
+}
+
+else if($func == 124){
+    $send   = [];
+    $post   = $Functions->sanitizeInput($_POST);    
+    $last4  = $post['last4'];
+
+    $delete = $Functions->deleteCards($last4);
+
+    echo json_encode($delete);
+    exit;
     
 }
+
+
+
+
+
+
+
+
+
 ?>

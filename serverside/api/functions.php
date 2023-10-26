@@ -11,108 +11,81 @@ class Apifunctions {
     }
 
 
-    // function batchDistance($origin, $batchcodes, $value = 'mile'){
+   //get lattitude and longitude from postcode
+   public static function getLatLong($postcode) {
+        $post_code = preg_replace('/\s+/', '', $postcode);
+        $apiUrl = "https://api.postcodes.io/postcodes/$post_code";
+        $response = @file_get_contents($apiUrl);
+
+        
+        // Check if the request was successful
+        if ($response === false) {
+            return false;
+        } else {
+            $data = json_decode($response, true);
+            $latitude = $data['result']['latitude'];
+            $longitude = $data['result']['longitude'];
+            $location = $data['result']['admin_district'];
+        }
+        $latitude_longitude = [
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'location' => $location
+        ];
+        return $latitude_longitude;
+   }
+
+
+   function setLeadRead($job_id, $user_id, $identifyer = "leads")
+   {
+       if($identifyer == 'leads') $identifier = 'lead_ids';
+       elseif($identifyer == 'interested') $identifier = 'interested_ids';
+       elseif($identifyer == 'shortlisted') $identifier = 'shortlisted_ids';
+       elseif($identifyer == 'jobswon') $identifier = 'jobswon_ids';
+
        
-    //     // Radius of the Earth in kilometers
-    //     $earthRadius = 6371;
+       $sql = "SELECT * FROM `read_leads_counter` WHERE `user_id` = '$user_id'";
 
-    //     // Radius of Earth in miles
-    //     $earthRadiusMiles = 3959;
+       if($this->db->sql($sql)){
 
-        
-    //     $distances  =	[];
-    //     $origins 	=	[
-    //         'latitude' 	=> null,
-    //         'longitude'	=> null
-    //     ];	
-    //     $c = 0;
-    
-    
-    //     $apiUrl = "https://api.postcodes.io/postcodes/$origin";
-    //     try {
-    //         $response = file_get_contents($apiUrl);
-    //     } catch (\Throwable $th) {
-    //         //throw $th;
-    //         return false;
-    //     }
+           $idstrings = $this->db->getResult();
 
-    //     if ($response === false) {
-    //         return false;
-    //     } else {
-    
-    //         $data = json_decode($response, true);
-            
-    //         if ($data['status'] === 200) {
-    //             $origins['latitude'] = $data['result']['latitude'];
-    //             $origins['longitude'] = $data['result']['longitude'];
-    //         } 
-    
-    //     }
-    
-        
-    //     $data = [
-    //         "postcodes" => $batchcodes
-    //     ];
-    //     $jsonData = json_encode($data);    
-  
-    //     $ch = curl_init();
-    
-    //     // Set cURL options
-    //     curl_setopt($ch, CURLOPT_URL, "https://api.postcodes.io/postcodes/");
-    //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    //     curl_setopt($ch, CURLOPT_POST, true);
-    //     curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
-    //     curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    //         'Content-Type: application/json',
-    //     ]);
-    
-    //     $response = curl_exec($ch);
+           $leads          = $idstrings[0]['lead_ids'];
+           $interested     = $idstrings[0]['interested_ids'];
+           $shortlisted    = $idstrings[0]['shortlisted_ids'];
+           $jobswon        = $idstrings[0]['jobswon_ids'];
+           
+           if ($leads || $interested || $shortlisted || $jobswon) {
 
-    //     if (curl_errno($ch)) {
-    //         return false;
-    //     }
-    
-    //     curl_close($ch);
-    //     $result = json_decode($response, true);
-    
-    //     if (!empty($result['result'][0]['result'])) {
-    //         foreach ($result["result"] as $postcodeData) {
-    
-                
-    
-    //             if($origins['latitude']){
-    
-    //                 // Convert latitude and longitude from degrees to radians
-    //                 $lat1Rad = deg2rad($origins['latitude']);
-    //                 $lon1Rad = deg2rad($origins['longitude']);
-    //                 $lat2Rad = deg2rad($postcodeData['result']['latitude']);
-    //                 $lon2Rad = deg2rad($postcodeData['result']['longitude']);
-                
-    //                 // Haversine formula to calculate distance between two points on the Earth's surface
-    //                 $deltaLat = $lat2Rad - $lat1Rad;
-    //                 $deltaLon = $lon2Rad - $lon1Rad;
-    //                 $a = sin($deltaLat / 2) * sin($deltaLat / 2) + cos($lat1Rad) * cos($lat2Rad) * sin($deltaLon / 2) * sin($deltaLon / 2);
-    //                 $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-                
-    //             }
-            
-    //             if($value === 'km')
-    //                 $distance = $earthRadius * $c;
-    //             else if ($value === 'mile')
-    //                 $distance = $earthRadiusMiles * $c;
-    
-                    
-                
-    //             array_push($distances, (float) number_format($distance, 2));
-    //         }
-    
-    
-    //     } else {
-    //         array_push($distances, 'NA');
-    //     }
-    
-    //     return $distances;    
-    // }
+               $job_ids = $idstrings[0][$identifier];
+
+               $idlist = explode(',', $job_ids);
+
+               $ids = array_filter($idlist, function($value) {
+                   return $value !== "";
+               });
+
+               if (!in_array($job_id, $ids)) {
+                   array_push($ids, $job_id);
+               }
+
+               $idlist = implode(',',$ids);
+               
+               $sql = "update read_leads_counter set $identifier='$idlist' where user_id='$user_id'";
+               if ($this->db->sql($sql)) return true;
+               else return false;          
+
+           }else {
+               $job_id = $job_id.',';
+               $sql = "INSERT INTO `read_leads_counter`(`user_id`,`$identifier`) VALUES ('$user_id','$job_id')";
+               
+               if ($this->db->sql($sql)) return true;
+               else  return false;
+           } 
+       }
+
+   }
+
     
     public static function DistanceCalculation($postcodes = [], $value = 'mile'){
 

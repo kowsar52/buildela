@@ -166,7 +166,7 @@ $func->set_last_seen($_SESSION['user_id']);
 $my_check       =   $func->checkMyapprove($_SESSION['user_id']);
 $my_checkuserdoc=   $func->checkUsergasorele($_SESSION['user_id']);
 $user           =   $func->UserInfo($_SESSION['user_id']);
-$subscription_id=   $user[0]['cus_id_stripe'];
+$subscription_id=   $user[0]['stripe_subscription_id'];
 $payuser_id     =   $user[0]['id'];
 $readcount      =   0;
 $countjobs      =   0;

@@ -1285,7 +1285,7 @@ function getServices() {
         if(!$userid) $userid=$_SESSION['user_id'];        
         $userinfo = $this->UserInfo($userid)[0];
 
-        if(!$subscription_id) $subscription_id= $userinfo['cus_id_stripe'];   
+        if(!$subscription_id) $subscription_id= $userinfo['stripe_subscription_id'];   
         
         $settings = $this->getSettings();
         $secret_key = $settings[0]['stripe_private_key'];
@@ -1297,8 +1297,6 @@ function getServices() {
         $subscription = \Stripe\Subscription::retrieve($subscription_id);
         $end_date = $subscription->current_period_end;
         $now = time();
-        
-        
     
         if($now < $end_date){
             return true;
@@ -1326,13 +1324,13 @@ function getServices() {
                 //    \Stripe\Stripe::setApiKey("sk_test_51KiyFEK7MTYjUl7bVHKoi89JLIaHBQo9uDlukufe5wNJeH5HUC2LtdhOoptzAwqXluLkxxeDKmhnEVOqeRGOrnUN00R7MM6qP5");
                 \Stripe\Stripe::setApiKey($secret_key);
                 $paymentmethod = \Stripe\PaymentMethod::all([
-                    'customer' => $res[0]['cus_id_stripe'],
+                    'customer' => $res[0]['stripe_subscription_id'],
                     'type' => 'card',
                 ]);
                 $intent = \Stripe\PaymentIntent::create([
                     'amount' => ($amount * 100),
                     'currency' => 'GBP',
-                    'customer' =>  $res[0]['cus_id_stripe'],
+                    'customer' =>  $res[0]['stripe_subscription_id'],
                     'payment_method' => $paymentmethod->data[0]->id,
                     'off_session' => true,
                     'confirm' => true,
@@ -1344,7 +1342,7 @@ function getServices() {
 
                 $day=30;
                 $s_type ="Monthly";
-                $tranx_id=$res[0]['cus_id_stripe'];
+                $stripe_subscription_id=$res[0]['stripe_subscription_id'];
 
                 $start_date = date("Y-m-d");
                 $end_date = date('Y-m-d', strtotime("+" . $day . "days"));
@@ -1357,7 +1355,7 @@ function getServices() {
                 $sql ="update users set subscription_type='$s_type', subscription_status=1 , subscription_date='$start_date' , subscription_end='$end_date' where id='$user_id' ";
                 $this->db->sql($sql);
 
-                $create_transaction = "INSERT INTO `transactions`(`tranx_id`,`payment_amount`, `payment_status`, `user_id`,`payment_type`,`object`,`s_type`) VALUES ('$tranx_id','$final_amount','$status_stripe','$user_id','$tranx_type','$json_object','$s_type')";
+                $create_transaction = "INSERT INTO `transactions`(`stripe_subscription_id`,`payment_amount`, `payment_status`, `user_id`,`payment_type`,`object`,`s_type`) VALUES ('$stripe_subscription_id','$final_amount','$status_stripe','$user_id','$tranx_type','$json_object','$s_type')";
                 $this->db->sql($create_transaction);
 
 
@@ -1381,7 +1379,7 @@ function getServices() {
             if($this->db->sql($sql)){
                 
                 $res=$this->db->getResult();
-                $subscription_id = $res[0]['cus_id_stripe'];
+                $subscription_id = $res[0]['stripe_subscription_id'];
                 
                 if(!empty($subscription_id) ) {
                 
@@ -1420,7 +1418,7 @@ function getServices() {
                 if($this->db->sql($sql)){
                     
                     $res=$this->db->getResult();
-                    $subscription_id = $res[0]['cus_id_stripe'];
+                    $subscription_id = $res[0]['stripe_subscription_id'];
                     
                     if(!empty($subscription_id) ) {
     
@@ -1502,55 +1500,42 @@ function getServices() {
         }
     }
     
-    function stripeSubscriptionStatus($cusid=null, $user_id=null){
+    function stripeSubscriptionStatus($isOnlyCancel=false, $cusid=null){
         
-        if(!$cusid){
-            if(!$user_id)$user_id = $_SESSION['user_id'];
-            $settings             =   $this->getSettings();
-            $secret_key           = $settings[0]['stripe_private_key'];
-            include_once $_SERVER['DOCUMENT_ROOT']."/vendor/stripe/stripe-php/init.php";
+       
+        $user_id = $_SESSION['user_id'];
+        $settings             =   $this->getSettings();
+        $secret_key           = $settings[0]['stripe_private_key'];
+        include_once $_SERVER['DOCUMENT_ROOT']."/vendor/stripe/stripe-php/init.php";
+        
+        try{
             
-            try{
-                
-                \Stripe\Stripe::setApiKey($secret_key);
-    
-                $sql="select * from users where id='$user_id'";
-                
-                if($this->db->sql($sql)){
+            \Stripe\Stripe::setApiKey($secret_key);
 
-                    $res=$this->db->getResult();
-                    // Retrieve the subscription object from Stripe
-                    $subscription_id = $res[0]['cus_id_stripe'];
+            $sql="select * from users where id='$user_id'";
+            
+            if($this->db->sql($sql)){
+
+                $res=$this->db->getResult();
+                if(!$cusid)$cusid = $res[0]['stripe_subscription_id'];
+                
+                if(!empty($cusid) ) {
                     
-                    if(!empty($subscription_id) ) {
-                        
-                        $subscription = \Stripe\Subscription::retrieve($subscription_id);                        
+                    $subscription = \Stripe\Subscription::retrieve($cusid); 
+                    if(!$isOnlyCancel){
                         if ($subscription->status == 'active' && $subscription->cancel_at_period_end == false) return true;
                         else return false;
-                        
-                    }
+                    }else {
+                        if ($subscription->status == 'active') return true;
+                        else return false;
+                    } 
                 }
-    
-            }catch (Exception $exception){
-    
             }
-        }else {
-            $settings    =   $this->getSettings();
-            $secret_key  =   $settings[0]['stripe_private_key'];
-            include_once $_SERVER['DOCUMENT_ROOT']."/vendor/stripe/stripe-php/init.php";
-            
-            try{
-                
-                \Stripe\Stripe::setApiKey($secret_key);                        
-                $subscription = \Stripe\Subscription::retrieve($cusid);
-                
-                if ($subscription->status == 'active' && $subscription->cancel_at_period_end == false) return true;
-                else return false;
-    
-            }catch (Exception $exception){
-    
-            }
+
+        }catch (Exception $exception){
+            return false;
         }
+        
     }
 
     function stripeTrialCheck($customerId=null){
@@ -1567,7 +1552,7 @@ function getServices() {
             $sql="select * from users where id='$user_id'";
             $this->db->sql($sql);
             $res=$this->db->getResult();
-            if(!$customerId) $customerId = $res[0]['cus_id_stripe'];
+            if(!$customerId) $customerId = $res[0]['stripe_subscription_id'];
 
             if($customerId){
                 $subscriptions = \Stripe\Subscription::all([
@@ -1602,23 +1587,239 @@ function getServices() {
             $sql="select * from users where id='$user_id'";
             $this->db->sql($sql);
             $res=$this->db->getResult();
-            if(!$customerId) $customerId = $res[0]['cus_id_stripe'];
+            if(!$customerId) $customerId = $res[0]['stripe_subscription_id'];
             
             if($customerId){
 
-                $subscription = \Stripe\Subscription::retrieve($subscription_id); 
+                $subscription = \Stripe\Subscription::retrieve($customerId); 
 
                 $subscriptionStartDate = $subscription->current_period_start;
                 $currentDate = time();
                 $timeDifference = $currentDate - $subscriptionStartDate;
                 $daysDifference = floor($timeDifference / (60 * 60 * 24));
                 $isWithin14Days = $daysDifference <= 14;
-
+                
                 return $isWithin14Days;
             }
         } catch (\Stripe\Exception\ApiErrorException $e) {
             return false;
         }
+    }
+
+
+    public function stripeRefund($user_id=null){
+        
+        
+
+        if(!$user_id)$user_id = $_SESSION['user_id'];
+        $settings             =   $this->getSettings();
+        $secret_key           = $settings[0]['stripe_private_key'];
+        include_once $_SERVER['DOCUMENT_ROOT']."/vendor/stripe/stripe-php/init.php";
+        
+        \Stripe\Stripe::setApiKey($secret_key);
+
+        $sql="select * FROM transactions WHERE user_id='$user_id '";
+        $this->db->sql($sql);
+
+        $customer=$this->db->getResult()[0];
+        $chargeid = $customer['stripe_charge_id'];
+        $refundamount = $customer['payment_amount'];
+        $invoiceId = $customer['stripe_invoice_id'];
+        $subsid = $customer['stripe_subscription_id'];  
+
+        try { 
+            
+            $refund = \Stripe\Refund::create([
+                'charge' => $chargeid,
+                'amount' => $this->dollarsToCents($refundamount),
+            ]);
+            
+
+            if($refund->status == 'succeeded'){
+                $sql = "INSERT INTO `refunds`(`stripe_refund_id`, `stripe_subscription_id`, `amount_refunded`, `user_id`, `last_stripe_charge_id`, `stripe_invoice_id`) VALUES ('$refund->id', '$subsid', '$refundamount', $user_id, '$chargeid', '$invoiceId');";
+                $this->db->sql($sql);            
+                return true;
+            }else {
+                return false;
+            }
+
+        } catch (\Stripe\Exception\CardException $e) {
+            return false;
+        } catch (\Stripe\Exception\RateLimitException $e) {
+            return false;
+        } catch (\Stripe\Exception\InvalidRequestException $e) {
+            return false;
+        } catch (\Stripe\Exception\AuthenticationException $e) {
+            return false;
+        } catch (\Stripe\Exception\ApiConnectionException $e) {
+            return false;
+        } catch (\Stripe\Exception\ApiErrorException $e) {
+            return false;
+        }
+    }
+
+    public function checkDefaultCard($last4){
+        
+        // include_once $_SERVER['DOCUMENT_ROOT']."/vendor/stripe/stripe-php/init.php";
+        
+        // $settings       =   $this->getSettings()[0];
+        // $secret_key     =   $settings['stripe_private_key'];
+        // $user_id        =   $_SESSION['user_id'];
+        // $userinfo       =   $this->UserInfo($user_id)[0];
+        // $customer_id    =   $userinfo['stripe_customer_id'];    
+        // $stripe = new \Stripe\StripeClient($secret_key);
+        
+        
+        // $cards = $stripe->customers->allSources( $customer_id,  ['object' => 'card'] );
+        
+        // if($cards->data){
+        //     foreach($cards->data as $card){
+
+        //     }
+        // }
+        
+    }
+
+    public function addCard($token){
+        
+        include_once $_SERVER['DOCUMENT_ROOT']."/vendor/stripe/stripe-php/init.php";
+        
+        $settings       =   $this->getSettings()[0];
+        $secret_key     =   $settings['stripe_private_key'];
+        $user_id        =   $_SESSION['user_id'];
+        $userinfo       =   $this->UserInfo($user_id)[0];
+        $customer_id    =   $userinfo['stripe_customer_id'];
+
+        $stripe = new \Stripe\StripeClient($secret_key);        
+        
+        $newCard = $stripe->customers->createSource(
+            $customer_id,
+            ['source' => $token]
+        );
+
+        return $newCard;
+        
+    }
+
+    public function retrieveCards($cardId = null){
+        
+        include_once $_SERVER['DOCUMENT_ROOT']."/vendor/stripe/stripe-php/init.php";
+        
+        $settings       =   $this->getSettings()[0];
+        $secret_key     =   $settings['stripe_private_key'];
+        $user_id        =   $_SESSION['user_id'];
+        $userinfo       =   $this->UserInfo($user_id)[0];
+        $customer_id    =   $userinfo['stripe_customer_id'];    
+        $stripe = new \Stripe\StripeClient($secret_key);
+        
+        if($cardId){
+            $card = $stripe->customers->retrieveSource(
+              $customer_id,
+              $cardId,
+              []
+            );
+            return $card;
+        }else {
+            $cards = $stripe->customers->allSources( $customer_id,  ['object' => 'card'] );
+            return $cards->data;
+        }
+
+        
+    }
+
+    public function updateCard($args=[], $last4){
+        
+        include_once $_SERVER['DOCUMENT_ROOT']."/vendor/stripe/stripe-php/init.php";
+        
+        $settings       =   $this->getSettings()[0];
+        $secret_key     =   $settings['stripe_private_key'];
+        $user_id        =   $_SESSION['user_id'];
+        $userinfo       =   $this->UserInfo($user_id)[0];
+        $customer_id    =   $userinfo['stripe_customer_id'];    
+        $stripe = new \Stripe\StripeClient($secret_key);
+        
+        
+        $cards = $stripe->customers->allSources( $customer_id,  ['object' => 'card'] );
+        if($cards->data){
+            foreach($cards->data as $card){
+                if($card->last4 === $last4) {
+                    $update = $stripe->customers->updateSource(
+                        $customer_id,
+                        $card->id,
+                        $args
+                    );
+                    return $update;
+                }
+            }
+        }else {
+            return false;
+        }
+
+        
+    }
+
+    public function deleteCards($last4){
+        
+        include_once $_SERVER['DOCUMENT_ROOT']."/vendor/stripe/stripe-php/init.php";
+        
+        $settings       =   $this->getSettings()[0];
+        $secret_key     =   $settings['stripe_private_key'];
+        $user_id        =   $_SESSION['user_id'];
+        $userinfo       =   $this->UserInfo($user_id)[0];
+        $customer_id    =   $userinfo['stripe_customer_id'];    
+        $stripe = new \Stripe\StripeClient($secret_key);
+        $cards = $stripe->customers->allSources( $customer_id,  ['object' => 'card'] );
+        
+        if($cards->data){
+            foreach($cards->data as $card){
+                $card4 = (int) $card->last4;
+                $last4 = (int) $last4;
+                if($card4 === $last4) {
+                    
+                    $delete = $stripe->customers->deleteSource(
+                        $customer_id,
+                        $card->id,
+                        []
+                    );
+                    if($delete->deleted) return $delete;
+                    else return false;
+                }
+            }
+        }else {
+            return false;
+        }
+        
+    }
+
+    
+
+    function stripeFloat($number) {
+        if (is_numeric($number)) {
+            $numberStr = strval($number);
+            $length = strlen($numberStr);
+            
+            if ($length >= 2) {
+                $formattedNumber = substr($numberStr, 0, $length - 2) . '.' . substr($numberStr, -2);
+                return (float)$formattedNumber;
+            }
+        }
+        
+        return $number;
+    }
+
+    function stripeDecimal($input) {
+        if (is_numeric($input)) {
+            return $input;
+        } else if (is_string($input)) {
+            $cleanedString = preg_replace('/[^0-9]/', '', $input);
+            return $cleanedString;
+        }
+        
+        return $input; // Return the input as is if it can't be cleaned
+    }
+
+    function dollarsToCents($dollars) {
+        return $dollars * 100;
     }
 
 
@@ -2407,6 +2608,57 @@ function sendNewBlogNotification($email,$link,$image,$title,$short_des){
 
         }
     }
+
+    function setFcmToken($user_id , $web_fcm){
+        $sql = "UPDATE users set web_fcm='$web_fcm' where id = '$user_id'  ";
+        if($this->db->sql($sql)){
+            return true;
+        }
+    }
+
+    
+    function sendNotification($tokens, $notification){
+        //send push notificaiton by firebase
+        $url = "https://fcm.googleapis.com/fcm/send";
+
+        $serverKey = 'AAAABhv8N4A:APA91bHNahn1FaKUh201mSQeV5m9GBRV98nmQFfDLIOsoE8XUNyJLTGDCLGdjuOPANIxfDg-sGAk45WkE1ZiOum43LRGjDXC0t2pdBi84ilBcoEhTKQ1bkGfBBlNv4ktTsFf0fiwUO5x';  // Replace with your Cloud Messaging Key from Firebase Console
+
+        $arrayToSend = [
+            'registration_ids' => $tokens,
+            'notification' => $notification,
+            'priority' => 'high'
+        ];
+
+        $json = json_encode($arrayToSend);
+
+        $headers = [
+            'Authorization: key=' . $serverKey,
+            'Content-Type: application/json'
+        ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+
+        $response = curl_exec($ch);
+
+        if ($response === FALSE) {
+            // die('FCM Send Error: ' . curl_error($ch));
+        }
+
+        curl_close($ch);
+
+        return $response;
+
+
+
+    }
+
     function sendMessageOnMobile($messagetxt,$sent_to){
 
         include_once "../Twilio/index.php";
@@ -3840,6 +4092,8 @@ function sendNewBlogNotification($email,$link,$image,$title,$short_des){
             return false;
         }
     }
+
+    
     
 
     function convertCurrency($amount, $fromCurrency, $toCurrency) {
@@ -4407,6 +4661,22 @@ function sendNewBlogNotification($email,$link,$image,$title,$short_des){
         $html = preg_replace('/<p[^>]*>(\s|&nbsp;)*<\/p>/i', '', $html);
         return trim($html);
     }
+
+    function sanitizeInput($input) {
+        if (is_array($input)) {
+            foreach ($input as $key => $value) {
+                $input[$key] = $this->sanitizeInput($value);
+            }
+        } else {
+            $input = trim($input);
+            $input = stripslashes($input);
+            $input = htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
+            $input = $this->db->escapeString($input);
+        }
+        return $input;
+    }
+    
+    
 
 
 

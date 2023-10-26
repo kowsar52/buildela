@@ -725,109 +725,95 @@ span.no-rating {
       <div class="listed-jobs">
 	  
         <div class="second-section-job-details-col-inner  rounded p-3">
-                  
-						  
-		
-			  
 
-                        <div class="second-section-Job-title pt-4">
-                            <div class="second-section-job-title-heading h4 d-flex justify-content-between"><?=$jobs[0]['title']?>
-                                <span class="edit-new-blue-btn "><a class="text-decoration-none py-1 px-2" id="edit-1" href="#">Edit <i id="fa-icon-rotate" class="fa fa-angle-right" aria-hidden="true"></i></a></span>
+            <div class="second-section-Job-title pt-4">
+                <div class="second-section-job-title-heading h4 d-flex justify-content-between"><?=$jobs[0]['title']?>
+                    <span class="edit-new-blue-btn "><a class="text-decoration-none py-1 px-2" id="edit-1" href="#">Edit <i id="fa-icon-rotate" class="fa fa-angle-right" aria-hidden="true"></i></a></span>
+                </div>
+                <div id="details-1-edit">
+                    <p><?=$main[0]['category_name']?></p>
+                </div>
+            </div>
+            <div id="edit-whole-wrapper">
+                <div  class="second-section-customer-description pb-4">
+                    <div class="second-section-customer-description-heading h4 d-flex justify-content-between heading-8">Job Description<span>
+                            <?php
+                            if($jobs[0]['status']==0){
+                                ?>
+                                <a data-toggle="modal" data-target="#des_modal" >Edit</a></span></div>
+                            <?php
+                            }else{
+                                ?>
+                    <a data-toggle="modal" data-target="#des_modal_add" >Add to post</a></span></div>
+                            <?php
+                            }
+                            ?>
+                    <div id="">
+                        <p><?=$jobs[0]['job_discription']?></p>
+                    </div>
+                    <div class="my-1">
+                        <?php
+                        foreach ($newDescription as $des){
+                            ?>
+                            <p><?=$des['description']?></p>
+
+                            <?php
+                        }
+                        ?>
+
+                    </div>
+            
+
+
+                </div>
+                <div  class="second-section-add-photo">
+                    <div class="heading-8">Photos & Videos</div>
+                    <div class="add-photo-row row mx-0 pt-4 pb-3">
+                        <div class="upload__box ">
+                            <div class="upload__btn-box" id="img_btn">
+                                <label class="upload__btn">
+                                    <p class="mb-0 text-uppercase font-weight-bold">Upload photos & videos</p>
+                                    <input type="hidden" id="jobsid" value="<?=$jobs[0]['id']?>" >
+                                    <input type="file" name="multipleimages[]" multiple id="images" data-max_length="20" class="upload__inputfile">
+                                </label>
+                                <p>you can select multiple from your gallery</p>
                             </div>
-                            <div id="details-1-edit">
-                                <p><?=$main[0]['category_name']?></p>
-                            </div>
+                            <span id="uploadresponse"></span>
+                            <span id="uploadresponse_spinner" style="display:none;"><i class="fa fa-spinner fa-spin"></i></span>
+                            <!--                                        <div class="upload__img-wrap"></div>-->
                         </div>
-                        <div id="edit-whole-wrapper">
-                            <!--                            <div  class="second-section-job-description pt-4 pb-3">-->
-                            <!--                                <div class="second-section-job-description-heading h4 d-flex justify-content-between">Job Description <span><a class="text-decoration-none" id="" href="#">Edit</a></span></div>-->
-                            <!--                                <div id="">-->
-                            <!--                                    <ul>-->
-                            <!--                                        <li>Bathroom refurbished / insulted</li>-->
-                            <!--                                        <li>Main bathroom</li>-->
-                            <!--                                        <li>Extensive bathroom refurb</li>-->
-                            <!--                                    </ul>-->
-                            <!--                                </div>-->
-                            <!--                            </div>-->
-                            <div  class="second-section-customer-description pb-4">
-                                <div class="second-section-customer-description-heading h4 d-flex justify-content-between heading-8">Job Description<span>
-                                        <?php
-                                        if($jobs[0]['status']==0){
-                                            ?>
-                                            <a data-toggle="modal" data-target="#des_modal" >Edit</a></span></div>
-                                        <?php
-                                        }else{
-                                            ?>
-                                <a data-toggle="modal" data-target="#des_modal_add" >Add to post</a></span></div>
-                                        <?php
-                                        }
-                                        ?>
-                                <div id="">
-                                    <p><?=$jobs[0]['job_discription']?></p>
-                                </div>
-                                <div class="my-1">
-                                    <?php
-                                    foreach ($newDescription as $des){
-                                        ?>
-                                        <p><?=$des['description']?></p>
+                    </div>
 
-                                        <?php
-                                    }
-                                    ?>
- 
-                                </div>
-						
-		
 
-                            </div>
-                            <div  class="second-section-add-photo">
-                                <div class="heading-8">Photos & Videos</div>
-                                <div class="add-photo-row row mx-0 pt-4 pb-3">
-                                    <div class="upload__box ">
-                                        <div class="upload__btn-box" id="img_btn">
-                                            <label class="upload__btn">
-                                                <p class="mb-0 text-uppercase font-weight-bold">Upload photos & videos</p>
-                                                <input type="hidden" id="jobsid" value="<?=$jobs[0]['id']?>" >
-                                                <input type="file" name="multipleimages[]" multiple id="images" data-max_length="20" class="upload__inputfile">
-                                            </label>
-                                            <p>you can select multiple from your gallery</p>
-                                        </div>
-                                        <span id="uploadresponse"></span>
-                                        <span id="uploadresponse_spinner" style="display:none;"><i class="fa fa-spinner fa-spin"></i></span>
-                                        <!--                                        <div class="upload__img-wrap"></div>-->
-                                    </div>
-                                </div>
-
-   
-				   
-				 
-											
-																
-					  
-									  
+        
+        
+                                
+                                                    
+            
+                            
+                    <?php
+                    if (!empty($jobImages)) {
+                        ?>
+                        <div class="leads-job-photos-wrapper py-4">
+                            <div class="job-photos-heading h4">Job Photos</div>
+                            <div class="leads-job-photos row">
                                 <?php
-                                if (!empty($jobImages)) {
-                                    ?>
-                                    <div class="leads-job-photos-wrapper py-4">
-                                        <div class="job-photos-heading h4">Job Photos</div>
-                                        <div class="leads-job-photos row">
-                                            <?php
-                                            foreach ($jobImages as $files){
-                                                $image=explode("/",$files['img_path']);
-                                                $img= $image[1].'/'.$image[2];
-												$imgid = $files['id'];
-                                                if($files['file_type']=='video'){
-                                                    ?>
-                                                    <div class="img-block">
-                                                    <video class="img-fluid rounded"  controls>
-                                                        <source src="<?=$img?>" type="video/mp4">
-                                                        Error Message
-                                                    </video>
-                                                    <a class="btn btn-danger d-block bnt-sec"   onclick="deleteImagejob(<?=$imgid?>)">Delete</a>
-                                                    </div>
-                                                    <?php
-                                                }else if($files['file_type']=='image'){
-                                                    ?>
+                                foreach ($jobImages as $files){
+                                    $image=explode("/",$files['img_path']);
+                                    $img= $image[1].'/'.$image[2];
+                                    $imgid = $files['id'];
+                                    if($files['file_type']=='video'){
+                                        ?>
+                                        <div class="img-block">
+                                        <video class="img-fluid rounded"  controls>
+                                            <source src="<?=$img?>" type="video/mp4">
+                                            Error Message
+                                        </video>
+                                        <a class="btn btn-danger d-block bnt-sec"   onclick="deleteImagejob(<?=$imgid?>)">Delete</a>
+                                        </div>
+                                        <?php
+                                    }else if($files['file_type']=='image'){
+                                        ?>
 <div class="img-block">
                                                     <img class="img-fluid rounded" src="<?=$img?>" >
 													
@@ -859,40 +845,40 @@ span.no-rating {
   </div>
   <div class="w-container">
        <?php
-	   if (empty($totalAppliedUser)) {
-    echo "<p class='no-result' >No one has applied yet. Please check back later.</p>";
-	   }
-                                foreach($totalAppliedUser as $appliedUser){
-                                    $userinfo=$func->UserInfo($appliedUser['user_id']);
-                                    $rateings=$func->getUserRatting($appliedUser['user_id']);
-                                    $checkChateStarted=$func->checkChatStarted($appliedUser['user_id'],$appliedUser['job_id']);
+	    if (empty($totalAppliedUser)) {
+            echo "<p class='no-result' >No one has applied yet. Please check back later.</p>";
+	    }
+        foreach($totalAppliedUser as $appliedUser){
+            $userinfo=$func->UserInfo($appliedUser['user_id']);
+            $rateings=$func->getUserRatting($appliedUser['user_id']);
+            $checkChateStarted=$func->checkChatStarted($appliedUser['user_id'],$appliedUser['job_id']);
 
-                                $sumofStars=0;
+            $sumofStars=0;
 
-$oneStars=0;
-$towStars=0;
-$threeStars=0;
-$fourStars=0;
-$fiveStars=0;
+            $oneStars=0;
+            $towStars=0;
+            $threeStars=0;
+            $fourStars=0;
+            $fiveStars=0;
 
-foreach($rateings as $rate){
-    $sumofStars+=$rate['ratings'];
-    if($rate['ratings']==1){
-        $oneStars++;
+            foreach($rateings as $rate){
+                $sumofStars+=$rate['ratings'];
+                if($rate['ratings']==1){
+                    $oneStars++;
 
-    }else if($rate['ratings']==2){
-        $towStars++;
+                }else if($rate['ratings']==2){
+                    $towStars++;
 
-    }else if($rate['ratings']==3){
-        $threeStars++;
+                }else if($rate['ratings']==3){
+                    $threeStars++;
 
-    }else if($rate['ratings']==4){
-        $fourStars++;
-    }else if($rate['ratings']==5){
-        $fiveStars++;
-    }
+                }else if($rate['ratings']==4){
+                    $fourStars++;
+                }else if($rate['ratings']==5){
+                    $fiveStars++;
+                }
 
-}//foreach
+            }//foreach
 
 
 
@@ -1075,23 +1061,7 @@ if (count($userinfo[0]['hired_counter']) > 1) {
                                                 ?>
                                                 <button  onclick="shortList(<?=$appliedUser['user_id']?>,
                                                 <?=$appliedUser['job_id']?>)" id="shortList<?=$appliedUser['user_id']?>" class="btn-bg-general text-white text-center px-4 py-2 text-decoration-none rounded">Shortlist</button>
-                                                <?php
-											 
-											  
-		   
-				 
-					
-													
-										
-																															  
-			  
-	  
-			
-																	  
-											  
-																									 
-																																													
-												 
+                                                <?php	 
                                             }else if($appliedUser['status']==1&&$appliedUser['worker_status']==0&&$appliedUser['employer_status']==0){
                                                 ?>
                                                 <button id="hire_btn" onclick="employerstartJob(<?=$appliedUser['user_id']?>,<?=$appliedUser['job_id']?>)" class="btn-bg-general

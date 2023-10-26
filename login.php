@@ -66,6 +66,7 @@ if($islogin):?>
         </div>
         <div class="f-account-form-block-2 w-form">
           <form id="login-form"  >
+            <input type="hidden" name="web_fcm" id="web_fcm_token">
             <div class="w-layout-grid f-account-input-grid-2">
               <div class="f-field-wrapper-2">
                 <div class="f-field-label-2">Email</div><input type="email" class="f-field-input-2 w-input" maxlength="256" name="Email-Field-04" data-name="Email Field 04" placeholder="Your email..." required id="email" >
@@ -85,35 +86,47 @@ if($islogin):?>
     <div class="f-account-image-wrapper-2"><img src="images/Buildela-2.png" loading="lazy" srcset="images/Buildela-2-p-500.png 500w, images/Buildela-2-p-800.png 800w, images/Buildela-2.png 800w" sizes="(max-width: 767px) 100vw, (max-width: 991px) 40vw, 45vw" alt="" class="f-image-cover-3"></div>
   </div>
 
+
   <script src="https://www.gstatic.com/firebasejs/9.14.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.14.0/firebase-messaging-compat.js"></script>
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyDuQap5naiFqC5cZhXnE7Lc3__Ocs9ii5c",
-    authDomain: "buildela-16a22.firebaseapp.com",
-    projectId: "buildela-16a22",
-    storageBucket: "buildela-16a22.appspot.com",
-    messagingSenderId: "26239317888",
-    appId: "1:26239317888:web:b23fc9e04db2c62af1b365",
-    measurementId: "G-SCB20XRVHG"
-};
-const app = firebase.initializeApp(firebaseConfig)
-const messaging = firebase.messaging()
-messaging.getToken({ vapidKey: "BOQcyOyo8cmgqiiTBktaSZvRTROCOXB-Ohx9KVmVQN0rg6-8WDRpRDSpk0agtVsK4lEV6Z9M2BvIG6IYceTpDkE" })
+    <script src="https://www.gstatic.com/firebasejs/9.14.0/firebase-messaging-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDuQap5naiFqC5cZhXnE7Lc3__Ocs9ii5c",
+            authDomain: "buildela-16a22.firebaseapp.com",
+            projectId: "buildela-16a22",
+            storageBucket: "buildela-16a22.appspot.com",
+            messagingSenderId: "26239317888",
+            appId: "1:26239317888:web:b23fc9e04db2c62af1b365",
+            measurementId: "G-SCB20XRVHG"
+        };
+        const app = firebase.initializeApp(firebaseConfig)
+        const messaging = firebase.messaging()
+        // generate device token using public id
+        messaging.getToken({ vapidKey: "BOQcyOyo8cmgqiiTBktaSZvRTROCOXB-Ohx9KVmVQN0rg6-8WDRpRDSpk0agtVsK4lEV6Z9M2BvIG6IYceTpDkE" }).then((currentToken) => {
+            if (currentToken) {
+                console.log(currentToken);
+                document.getElementById('web_fcm_token').value = currentToken
+            } 
+        }).catch((err) => {
+            console.log(err);
+        })
+        messaging.onMessage((payload) => {
+            // if app is open and focus then notification data will receive here
+            // keep in mind if message receive here, it will not notify in background
+            // so here, use the message data however you want
+            console.log('Message received ', payload);
+            const messagesElement = document.querySelector('.message')
+            const dataHeaderElement = document.createElement('h5')
+            const dataElement = document.createElement('pre')
+            dataElement.style = "overflow-x: hidden;"
+            dataHeaderElement.textContent = "Message Received:"
+            dataElement.textContent = JSON.stringify(payload, null, 2)
+            messagesElement.appendChild(dataHeaderElement)
+            messagesElement.appendChild(dataElement)
+        })
+       
+    </script>
 
-
-messaging.onMessage((payload) => {
-    console.log('Message received ', payload);
-    const messagesElement = document.querySelector('.message')
-    const dataHeaderElement = document.createElement('h5')
-    const dataElement = document.createElement('pre')
-    dataElement.style = "overflow-x: hidden;"
-    dataHeaderElement.textContent = "Message Received:"
-    dataElement.textContent = JSON.stringify(payload, null, 2)
-    messagesElement.appendChild(dataHeaderElement)
-    messagesElement.appendChild(dataElement)
-})
-</script>
 
 
 <?php include_once "includes/footer-no-cta.php"?>
