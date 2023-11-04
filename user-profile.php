@@ -23,7 +23,7 @@ $user=$user[0];
 $date=date_create($user['pub_insurance_date']);
 $date1=date_create($user['pro_insurance_date']);
 $last_seen=$func->last_seen($_GET['u_id']);
-$func->set_last_seen($_SESSION['user_id']);
+$func->setlastSeen($_SESSION['user_id']);
 $social_media_links=$func->getSocialMediaLinks($_GET['u_id']);
 $checkStatus=$func->getApplyUserStatus($_SESSION['user_id'],$_GET['job_id']);
 $totalAppliedUser=$func->getAllApplyUser($_GET['job_id']);
@@ -507,7 +507,7 @@ i.fa-solid.fa-location-dot {
     padding-right: 0px;
     margin-left: -2px!important;
     margin-top: 0;
-    line-height: 0;
+    line-height: 1;
     font-size: 22px;
     font-family: 'DM Sans', sans-serif!important;
 }
@@ -1569,6 +1569,116 @@ if (count($rateings) > 1) {
 }
 ?></div>
                                                     </div>
+
+<?php
+$sumofStars=0;
+foreach($rateings as $rate){
+    $sumofStars+=$rate['ratings_q2'];
+
+}//foreach
+
+?>
+<div class="exelent h5">Quote Accuracy</div>
+<div class="row mx-0">
+<div class="uui-testimonial11_rating-wrapper <?php if (count($rateings) == 0) { echo 'no-rt'; } ?> ">
+<?php
+if (count($rateings) > 0) {
+$rating = round($sumofStars / count($rateings), 1);
+$fullStars = floor($rating);
+$decimalPart = $rating - $fullStars;
+
+// Display number
+echo "<span class='rating-number'>" . $rating . "</span>";
+
+// Display full stars
+for ($i = 0; $i < $fullStars; $i++) {
+echo "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='#FFC107' viewBox='0 0 18 18'><path d='M9,0L6.563,6.095L0,6.539l5.04,4.219l-1.594,6.352L9,13.617l5.555,3.492l-1.594-6.352L18,6.539l-6.563-0.444L9,0z'/></svg>";
+}
+
+// Display half star
+if ($decimalPart >= 0.1 && $decimalPart <= 0.9) {
+echo "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 18 18'><path d='M9,0L7.406,6.095L0,6.539l5.04,4.219L3.446,16.11L9,13.617V0z' fill='#FFC107'></path><path d='M9,0L10.594,6.095L18,6.539l-5.04,4.219L14.554,16.11L9,13.617V0z' fill='#808080'></path>
+</svg>";
+$fullStars++; // Increment full stars count to account for the half star
+}
+
+// Display remaining grey stars
+$remainingStars = 5 - $fullStars;
+for ($i = 0; $i < $remainingStars; $i++) {
+echo "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='#808080' viewBox='0 0 18 18'><path d='M9,0L6.563,6.095L0,6.539l5.04,4.219l-1.594,6.352L9,13.617l5.555,3.492l-1.594-6.352L18,6.539l-6.563-0.444L9,0z'/></svg>";
+}
+}
+?>
+<div class="text-block-18 rv d-none <?php if (count($rateings) == 0) { echo 'no-rt'; } ?>">
+<strong class="bold-text-4 <?php if (count($rateings) == 0) { echo 'no-rt'; } ?>">
+<?php
+if (count($rateings) == 0) {
+
+} else {
+echo '<span class="total-rating">(' . count($rateings) . ')</span>';
+}
+?>
+</strong>
+</div>
+</div>
+</div>
+<div class="exelent h5">Job Completion Time</div>
+<?php
+
+$sumofStars=0;
+foreach($rateings as $rate){
+    $sumofStars+=$rate['ratings_q3'];
+
+}//foreach
+
+?>
+
+<div class="row mx-0">
+<div class="uui-testimonial11_rating-wrapper <?php if (count($rateings) == 0) { echo 'no-rt'; } ?> ">
+<?php
+if (count($rateings) > 0) {
+$rating = round($sumofStars / count($rateings), 1);
+$fullStars = floor($rating);
+$decimalPart = $rating - $fullStars;
+
+// Display number
+echo "<span class='rating-number'>" . $rating . "</span>";
+
+// Display full stars
+for ($i = 0; $i < $fullStars; $i++) {
+echo "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='#FFC107' viewBox='0 0 18 18'><path d='M9,0L6.563,6.095L0,6.539l5.04,4.219l-1.594,6.352L9,13.617l5.555,3.492l-1.594-6.352L18,6.539l-6.563-0.444L9,0z'/></svg>";
+}
+
+// Display half star
+if ($decimalPart >= 0.1 && $decimalPart <= 0.9) {
+echo "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 18 18'><path d='M9,0L7.406,6.095L0,6.539l5.04,4.219L3.446,16.11L9,13.617V0z' fill='#FFC107'></path><path d='M9,0L10.594,6.095L18,6.539l-5.04,4.219L14.554,16.11L9,13.617V0z' fill='#808080'></path>
+</svg>";
+$fullStars++; // Increment full stars count to account for the half star
+}
+
+// Display remaining grey stars
+$remainingStars = 5 - $fullStars;
+for ($i = 0; $i < $remainingStars; $i++) {
+echo "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='#808080' viewBox='0 0 18 18'><path d='M9,0L6.563,6.095L0,6.539l5.04,4.219l-1.594,6.352L9,13.617l5.555,3.492l-1.594-6.352L18,6.539l-6.563-0.444L9,0z'/></svg>";
+}
+}
+?>
+<div class="text-block-18 rv d-none <?php if (count($rateings) == 0) { echo 'no-rt'; } ?>">
+<strong class="bold-text-4 <?php if (count($rateings) == 0) { echo 'no-rt'; } ?>">
+<?php
+if (count($rateings) == 0) {
+
+} else {
+echo '<span class="total-rating">(' . count($rateings) . ')</span>';
+}
+?>
+</strong>
+</div>
+</div>
+
+
+</div>
+
 
                                                 </div>
 

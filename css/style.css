@@ -2825,6 +2825,42 @@ a#setCategory {
   color: #fff;
 }
 
+
+/* MODAL */
+#appDownloadModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: #181818c7;
+  z-index: 99999;
+  display: flex;
+  justify-content: center;
+  display: none;
+}
+
+#appDownloadModal .modal-dialog {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+#appDownloadModal .modal-content {
+  width: 70%;
+  background: #fff;
+  border-radius: 6px;
+  position: relative
+}
+
+#appDownloadModal button.close {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+}
+
+
 @media (min-width: 320px) and (max-width: 480px) {
   .row.mx-0.justify-content-between.mobile-onlyfl {
     position: absolute;

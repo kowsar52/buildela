@@ -77,7 +77,7 @@ if(isset($_SESSION['user_id'])){
     $mainCategory=$func->mainCategory();
     $Skills=$func->getMySkills($_SESSION['user_id']);
     $gallery=$func->getMyGallery($_SESSION['user_id']);
-    $func->set_last_seen($_SESSION['user_id']);
+    $func->setlastSeen($_SESSION['user_id']);
     $last_seen=$func->last_seen($_SESSION['user_id']);
     $withdraws=$func->getMyWithdraw($_SESSION['user_id']);
 
@@ -793,6 +793,8 @@ h5.publicin,h5.prolicin {
                     <a class="navmain-blue-btn btn text-decoration-none text-white text-center " href="view_gallery">My Work Gallery</a>
                
 <a class="navmain-blue-btn btn text-decoration-none text-white text-center" data-toggle="modal" data-target="#notification_modal">Notifications</a>
+<a class="navmain-blue-btn btn text-decoration-none text-white text-center " href="view_stats">Statistics</a>
+
               
                     
            
@@ -1267,12 +1269,14 @@ if (isTabletOrDesktop()) {
                         <tbody>
                         <?php
                         foreach ($referraluser as $ref_user){
+                            $Function = new Functions();
+                            
                             ?>
                             <tr>
                                 <td><?=$ref_user['fname']?></td>
                                 <td>
                                     <?php
-                                    if($ref_user['subscription_status']==1){
+                                    if($Function->stripeSubscriptionStatus(true, $ref_user['id'])){
                                         ?>
                                         <span class="badge badge-success">Active</span>
                                         <?php

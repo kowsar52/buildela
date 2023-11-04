@@ -17,10 +17,10 @@ class Database {
     // private $db_pass = "Buildela123_01!";  // Change as required
     // private $db_name = "u786279181_buildela";
     // test live
-   private $db_host = "localhost";  // Change as required
-   private $db_user = "u786279181_xbuild";  // Change as required
-   private $db_pass = "Build2024!";  // Change as required
-   private $db_name = "u786279181_xbuild"; // Change as required
+   private $db_host = "127.0.0.1:8889";  // Change as required
+   private $db_user = "root";  // Change as required
+   private $db_pass = "root";  // Change as required
+   private $db_name = "buildela"; // Change as required
 
 
     /*
@@ -192,7 +192,7 @@ class Database {
     }
 
     // Function to update row in database
-    public function update($table, $params = array(), $where) {
+    public function update($table, $params, $where) {
         // Check to see if table exists
         if ($this->tableExists($table)) {
             // Create Array to hold all the columns to update

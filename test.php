@@ -6,9 +6,16 @@ $body =  "You have a new Electrician lead in UK: FIX Frigge";
 
 $notification = [
     'title' => $title,
-    'body' => $body
+    'body' => $body,
+    'sound' => "default",
+    'priority' => high,
+    'click_action' => FLUTTER_NOTIFICATION_CLICK,
+    'data' => [
+        'type' => 'leads_detail',
+        'job_id' => 335,
+        'job_title' => 'FIX Frigge',
+    ]
 ];
 
-$tokens = ["endQxOgVQZKdcFLsZ69tRw:APA91bFrQEzIUyJQmFVKn7t-aCYbQeD5PIKva432UR4YJ2gvsDjYjJ13UOphw0J-mVZ_T7z5_sZuV94gMnipdS3-1REykJ5cH5X5sum7cuyps_C_z5FjGSRgOrlD_oaIrgs2V991IZ9i",
-"cllpKmfCq8pif05orPgINE:APA91bGpC3HlvOsaHDV1nt3jIpuQhX7TILsUzU8BKw2jyRXN-HClaLBY13wvMmBfGorWjszcPPGe4pptkjxgAD796XwRCQy7P5lCEM6lPzUtQ12ZEYKwEAdhy4N38FD8VpUdZOmecBiw"];
+$tokens = ["f7hbOiyB3UHInhKxiLZy4O:APA91bFDvcxNN66HJFRYAXcHuJ8MEPEZeU0v95N0F7x7OddXubdiJNibrApGLJk1KCY7idYxLQXFr5SrW73Ar_032qLqXiIBzIM3Mt2LdkVKT7_ouHG0GfcuJqizb7Uv-M3MvtsjYtky","eIK_KDCbTM-bYPV_MmpX5Z:APA91bFTSfwS0uZZ_Dy_bQ466Qz8DfOETQwLeK98kYs2woYzRUVCeS1xySsfNge7N8Zrc0ZGL2X72GLWVGe5kJj4wvTEn8x1mhamSzFIUj-i_JfoDXuX37H2WJWPHkYROew_aSKROeif"];
 $Functions->sendNotification($tokens, $notification);

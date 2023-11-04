@@ -4,15 +4,8 @@ if(session_id() == '' || !isset($_SESSION) || session_status() === PHP_SESSION_N
     // session isn't started
     session_start();
 }
-if((isset($_SESSION['user_id'])) &&( $_SESSION['user_type']==1 )){
-
-}else{
-    //header('Location: sign-in');
-    ?>
-    <script type="text/javascript">
-        window.location.href="../login";
-    </script>
-    <?php
+if((!isset($_SESSION['user_id'])) || ( $_SESSION['user_type']!=1 )){
+    echo '<script type="text/javascript">window.location.href="../login"; </script>';
     exit();
 }
 

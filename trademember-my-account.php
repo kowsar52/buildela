@@ -7,11 +7,12 @@ $func=new Functions();
 $settings=$func->getSettings();
 $stripe_public_key = $settings[0]['stripe_public_key'];
 $stripe_private_key = $settings[0]['stripe_private_key'];
-$func->set_last_seen($_SESSION['user_id']);
+$func->setlastSeen($_SESSION['user_id']);
 // $func->updateSubscriptionStatus($_SESSION['user_id']);
 //$func->autoCharge($_SESSION['user_id']);
 
-$cards = $func->retrieveCards(); 
+// $cards = $func->retrieveCards(); 
+$cards = [];
 
 $changeplan = isset($_GET['plan_update']) && $_GET['plan_update'] === 'true'? true : false;
 $changecard = isset($_GET['card_update']) && $_GET['card_update'] === 'true' ? true : false;
@@ -367,7 +368,7 @@ if(isset($_SESSION['user_id']) && $_SESSION['user_role']=='jobs_person' ) {
                                         <h5> Your Plan </h5>
 
                                         <div class="outer">
-                                            <input type="radio" id="css" name="plan" onchange="myplan(this.value)" value="yearly" checked>
+                                            <input type="radio" id="css" name="plan" onchange="planChanger(this.value)" value="yearly" checked>
                                             <label for="css">
                                                 <div style="display: flex;flex-wrap: wrap;align-items: center;gap: 6px;">
                                                     <span class="period">Annual</span> 
@@ -382,7 +383,7 @@ if(isset($_SESSION['user_id']) && $_SESSION['user_role']=='jobs_person' ) {
 
 
                                         <div class="outer">
-                                            <input type="radio" id="html" name="plan" value="monthly" onchange="myplan(this.value)" >
+                                            <input type="radio" id="html" name="plan" value="monthly" onchange="planChanger(this.value)" >
                                             <label for="html">
                                                 <span class="period">Monthly</span>
                                                 <span class="show"><?=$currencysymbol?><?=$currencysymbol.$monthlyprice?>/month</span>
@@ -491,7 +492,7 @@ if(isset($_SESSION['user_id']) && $_SESSION['user_role']=='jobs_person' ) {
                                             <h5> Your Plan </h5>
 
                                             <div class="outer">
-                                                <input type="radio" id="css" name="plan" onchange="myplan(this.value)" value="yearly" checked>
+                                                <input type="radio" id="css" name="plan" onchange="planChanger(this.value)" value="yearly" checked>
                                                 <label for="css">
                                                     <div style="display: flex;flex-wrap: wrap;align-items: center;gap: 6px;">
                                                         <span class="period">Annual</span> 
@@ -499,17 +500,17 @@ if(isset($_SESSION['user_id']) && $_SESSION['user_role']=='jobs_person' ) {
                                                     </div>
                                                     <span class="show">
                                                         <?=$currencysymbol.$monthlyonyearly?>/month<br>
-                                                        <span class="text-muted">(<?=$currencysymbol?>119.88 billed annually)</span> 
+                                                        <span class="text-muted">(<?=$currencysymbol.$yearlyprice?> billed annually)</span> 
                                                     </span>
                                                 </label>
                                             </div>
 
 
                                             <div class="outer">
-                                                <input type="radio" id="html" name="plan" value="monthly" onchange="myplan(this.value)" >
+                                                <input type="radio" id="html" name="plan" value="monthly" onchange="planChanger(this.value)" >
                                                 <label for="html">
                                                     <span class="period">Monthly</span>
-                                                    <span class="show"><?=$currencysymbol?>19.99/month</span>
+                                                    <span class="show"><?=$currencysymbol.$monthlyprice?>/month</span>
                                                 </label>
                                             </div>
                                             <div class="plan_change_terms">
@@ -688,7 +689,7 @@ if(isset($_SESSION['user_id']) && $_SESSION['user_role']=='jobs_person' ) {
 
 <script type="text/javascript">
 
-    function myplan(planselector){
+    function planChanger(planselector){
         var cr_sym='<?=$currencysymbol?>';
 
         if(planselector == 'monthly') {
@@ -699,7 +700,7 @@ if(isset($_SESSION['user_id']) && $_SESSION['user_role']=='jobs_person' ) {
             $('.choose_plan').val(plan);
             $('.choose_plan_dec').val(plan);
         } else {
-            $('#plans').val('<?= $prices['monthly']; ?>');
+            $('#plans').val('<?= $prices['yearly']; ?>');
             $('#cost_now').html(cr_sym+'<?=$yearlyprice?>');
             var plan="<?=$yearlyprice?>";
             $('.choose_plan').val(plan);
@@ -721,8 +722,8 @@ if(isset($_SESSION['user_id']) && $_SESSION['user_role']=='jobs_person' ) {
 
     $('#update_plan').click(function(e){
         e.preventDefault();
-        let price = $('.plans').val();
-        console.log(price);
+        let price = $('#plans').val();
+
         $.ajax({
             url: "serverside/post.php",
             type: "POST",

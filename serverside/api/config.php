@@ -1,6 +1,5 @@
 <?php
-$servername = "localhost";
-$username = "u786279181_xbuild";
-$password = "Build2024!";
-$dbname = "u786279181_xbuild";
-?>
+$servername = "127.0.0.1:8889";
+$username = "root";
+$password = "root";
+$dbname = "buildela";

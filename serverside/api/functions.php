@@ -11,8 +11,8 @@ class Apifunctions {
     }
 
 
-   //get lattitude and longitude from postcode
-   public static function getLatLong($postcode) {
+    //get lattitude and longitude from postcode
+    public static function getLatLong($postcode) {
         $post_code = preg_replace('/\s+/', '', $postcode);
         $apiUrl = "https://api.postcodes.io/postcodes/$post_code";
         $response = @file_get_contents($apiUrl);
@@ -33,7 +33,7 @@ class Apifunctions {
             'location' => $location
         ];
         return $latitude_longitude;
-   }
+    }
 
 
    function setLeadRead($job_id, $user_id, $identifyer = "leads")
@@ -225,5 +225,21 @@ class Apifunctions {
             return $categories_ids;
         }
     }
+
+    public function sanitizeInput($input) {
+        if (is_array($input)) {
+            foreach ($input as $key => $value) {
+                $input[$key] = $this->sanitizeInput($value);
+            }
+        } else {
+            $input = trim($input);
+            $input = stripslashes($input);
+            $input = htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
+            
+            $input = $this->db->escapeString($input);
+        }
+        return $input;
+    }
+    
 
 }

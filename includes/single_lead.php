@@ -1,50 +1,40 @@
-<style>
-    .single-leads-interested-tradepeople-feedback span {
-    margin-left: -4px;
-    margin-bottom: 3px;
-    display: inline-block;
-}
-</style>
-
-
 <?php
 
 
-if (isset($_SESSION['user_id']) && isset($_GET['id'])) {
-
-
-}else
-{
-    ?>
-    <script type="text/javascript">window.location.href="index";</script>
-    <?php
+if (!isset($_SESSION['user_id'])) {
+    echo '<script type="text/javascript">window.location.href="index";</script>';
     exit();
 }
-
-$distance           =   $_GET['d'];
-$reading            =   $_GET['r'];
-$identifiyer        =   $_GET['i'];
-$incomingjobscount  =   $_GET['j'];
+if(!isset($data['id'])) exit(); 
+$data               =   $func->sanitizeInput($_GET);
+$reading            =   $data['r'];
+$identifiyer        =   $data['i'];
+$incomingjobscount  =   $data['j'];
 $initjobcount       =   0;
-$jobsarray          =   $func->getSingleJob($_GET['id']);
-$main               =   $func->SingleMainCategory($jobsarray[0]['main_type']);
-$sub                =   $func->SingleSubCategory($jobsarray[0]['sub_type']);
-$options            =   $func->getSingleOptions($jobsarray[0]['options']);
-$user               =   $func->getuserdetails($jobsarray[0]['user_id']);
-$jobImages          =   $func->getJobsImages($_GET['id']);
-$applyJob           =   $func->getSingleApplyJob($_GET['id']);
-$totalAppliedUser   =   $func->getAllApplyUser($_GET['id']);
-$shortListedUser    =   $func->shortlistedusers($_GET['id']);
-$checkStatus        =   $func->getApplyUserStatus($_SESSION['user_id'],$_GET['id']);
-$usersStatus        =   $func->getjobposteduserinfo($_GET['id']);
-$check_chat_exist   =   $func->isChatexist($jobsarray[0]['id']);
-$new_chat           =   $func->getAllNewChates($jobsarray[0]['user_id'],$jobsarray[0]['id']);
-$newDescription     =   $func->getNewDescriptionOfJob($_GET['id']);
+
+// $jobsarray          =   $func->getSingleJob($data['id']);
+// $main               =   $func->SingleMainCategory($jobDetails['main_type']);
+// $sub                =   $func->SingleSubCategory($jobDetails['sub_type']);
+// $options            =   $func->getSingleOptions($jobDetails['options']);
+// $jobImages          =   $func->getJobsImages($data['id']);
+
+
+$jobDetails         =   $func->getJobDetails($data['id']);
+$user               =   $func->getuserdetails($jobDetails['user_id']);
+$applyJob           =   $func->getSingleApplyJob($data['id']);
+$totalAppliedUser   =   $func->getAllApplyUser($data['id']);
+$shortListedUser    =   $func->shortlistedusers($data['id']);
+$checkStatus        =   $func->getApplyUserStatus($_SESSION['user_id'],$data['id']);
+$usersStatus        =   $func->getjobposteduserinfo($data['id']);
+$check_chat_exist   =   $func->isChatexist($jobDetails['id']);
+$new_chat           =   $func->getAllNewChates($jobDetails['user_id'], $jobDetails['id']);
+$newDescription     =   $func->getNewDescriptionOfJob($data['id']);
+$distance           =   $jobDetails['distance'];
 
 
 
-if(!$func->isLeadRead($_GET['id'])){
-    $func->setLeadRead($_GET['id']);
+if(!$func->isLeadRead($data['id'])){
+    $func->setLeadRead($data['id']);
 }
 
 if($reading === 'unread'){
@@ -65,18 +55,18 @@ if(isset($userstatus) && $userstatus['status']!=0 ){
 }
 
 
-$date=date_create($jobsarray[0]['created_date']);
+$date=date_create($jobDetails['created_date']);
 
 //apply button status
 $apply_button="";
-$applyJobnew=$func->getAllApplyUser_new($_GET['id']);
+$applyJobnew=$func->getAllApplyUser_new($data['id']);
 if((!empty($applyJobnew) )&&($applyJobnew[0]['worker_status']==1)){
     $apply_button.='<a id="apply_btn" class="btn-bg-general tooltip-show btn-block text-white text-center px-3 py-2 
 text-decoration-none font-weight-bold rounded" style="padding-bottom: .3rem !important;padding-top: .3rem !important;">Someone started Job</a>';
 
 }else if(($_SESSION['user_role'] !='home_owner') && (count($checkStatus)==0)){
     $apply_button.='<a id="apply_btn" class="btn-bg-general tooltip-show btn-block text-white text-center px-3 py-2 text-decoration-none font-weight-bold rounded" style="padding-bottom: .3rem !important;padding-top: .3rem !important;"
-                        data-toggle="modal" data-target="#exampleModal" data-post_code="'.$jobsarray[0]['post_code'].'" data-id="'.$jobsarray[0]['id'].'" >Express Interest</a>';
+                        data-toggle="modal" data-target="#exampleModal" data-post_code="'.$jobDetails['post_code'].'" data-id="'.$jobDetails['id'].'" >Express Interest</a>';
 
 }else if(($_SESSION['user_role'] !='home_owner') &&
     ($checkStatus[0]['status']==0) &&
@@ -118,7 +108,7 @@ if( count($checkStatus)>0 && (!empty($check_chat_exist) )){
     margin-right: 0;    line-height: 19px;" class="bg-danger position-absolute rounded-circle px-1">'.count($new_chat).'</span>';
     }
     $chat.='<div class="position-relative">
-                <a href="chat?touserid='.$jobsarray[0]['user_id'].'&jobid='.$jobsarray[0]['id'].'">
+                <a href="chat?touserid='.$jobDetails['user_id'].'&jobid='.$jobDetails['id'].'">
                <i class="fa-solid fa-envelope" style="font-size: 3.9em;"></i>
                 </a>
                 '.$check.'
@@ -126,53 +116,49 @@ if( count($checkStatus)>0 && (!empty($check_chat_exist) )){
 }
 
 //concate images
-$videoCount = 0;
-$imageCount = 0;
+$videos     = $jobDetails['videos'];
+$images     = $jobDetails['images'];
+$videoCount = count($videos);
+$imageCount = count($images);
+
+
 $imagesdata = "";
 $videoBlock = '<div class="video-blocks2">';
 $imageBlock = '<div class="image-blocks2">';
 
-foreach ($jobImages as $files) {
-    $image = explode("/", $files["img_path"]);
-    $img = $image[1] . '/' . $image[2];
-    
-    if ($files['file_type'] == "video") { $videoCount++;
+if($videos){
+    foreach($videos as $video){
         $videoBlock .= '
-            <a href="'.$img.'" data-href="'.$img.'#t=0.001" data-lightbox="Videos">
-                <video class="img-fluid rounded" controls>
-                    <source src="'.$img.'#t=0.001" type="video/mp4" about="job video">
-                    Error Message
-                </video>
-            </a>';
-    } else if ($files['file_type'] == 'image') { $imageCount++;
-        $imageBlock .= '
-            <a href="'.$img.'" data-lightbox="leads">
-                <img class="img-fluid rounded" src="'.$img.'" alt="job image">
-            </a>';
+        <a href="'.$img.'" data-href="'.$img.'#t=0.001" data-lightbox="Videos">
+            <video class="img-fluid rounded" controls>
+                <source src="'.$img.'#t=0.001" type="video/mp4" about="job video">
+                Error Message
+            </video>
+        </a>';
     }
 }
-if ($imageCount == 0) {
-    $imageBlock .= '<style>.image-blocks { display: none; }</style>';
-} else {
-    $imageBlock .= '<div class="total-counts">Total Images: ' . $imageCount . '</div>';
+
+if($images) {
+    foreach($images as $image){
+        $imageBlock .= '
+        <a href="'.$img.'" data-lightbox="leads">
+            <img class="img-fluid rounded" src="'.$img.'" alt="job image">
+        </a>';
+    }
 }
 
-if ($videoCount == 0) {
-    $videoBlock .= '<style>.video-blocks { display: none; }</style>';
-} else {
-    $videoBlock .= '<div class="total-counts">Total Videos: ' . $videoCount . '</div>';
-} 
+if ($imageCount == 0) $imageBlock .= '<style>.image-blocks { display: none; }</style>';
+else  $imageBlock .= '<div class="total-counts">Total Images: ' . $imageCount . '</div>';
+
+if ($videoCount == 0) $videoBlock .= '<style>.video-blocks { display: none; }</style>';
+else $videoBlock .= '<div class="total-counts">Total Videos: ' . $videoCount . '</div>';
+
 
 $videoBlock .= '</div>';
 $imageBlock .= '</div>';
 
 // Output the video and image blocks
 $imagesdata = $videoBlock . $imageBlock;
-
-// Use $imagesdata as needed
-
-
-
 
 //concate intrested peoples
 $intrested_people= "";
@@ -264,44 +250,24 @@ foreach($totalAppliedUser as $appliedUser){
 
 //time differance
 
-$subdate=$jobsarray[0]['created_date'];
+$subdate=$jobDetails['created_date'];
 $earlier = new DateTime($subdate);
 $later = new DateTime(date("Y-m-d H:i:s"));
 $diff = $later->diff($earlier)->format("%a");
 
 $time="";
 $new_leades="";			   
-if($diff==0){
+if($diff < 1){
+
     $houre = $later->diff($earlier);
-    $houres=$houre->h;
-    if($houres == 0){
-        $time.="Lead posted few minutes ago";
-    }else{
-
-        $time.="Lead posted $houres hours ago";
-    }
-	  if($houres<=12){
+    $time.= $func->formatPostedTime($houre->h);
+    
+    if($houre->h <=12){
         $new_leades='<span class="px-2 py-1 new-lead"> New lead</span>';
-
     }				
 
-}else if ($diff == 1) {
-    $time.="Lead posted 1 day ago";
-}else if($diff == 2){
-
-    $time.="Lead posted 2 days ago";
-}else if ($diff == 3) {
-    $time.="Lead posted 3 days ago";
-}else if($diff == 4){
-    $time.="Lead posted 4 days ago";
-}else if ($diff == 5) {
-    $time.="Lead posted 5 days ago";
-}else if($diff == 6){
-    $time.="Lead posted 6 days ago";
-}else if ($diff == 7) {
-    $time.="Lead posted 7 days ago";
-}else if($diff > 7){
-    $time.="Lead posted a week ago";
+}else{
+    $time.= $func->formatPostedDay();
 }
 $more_description='';
 foreach ($newDescription as $des){
@@ -322,10 +288,10 @@ if($imageCount != 0 || $videoCount != 0){
 echo '<div class="six-fraction-inner ">
     <div class="single-lead-complete-description px-3">
         <div class="single-lead-complete-description-first-section bg-white">
-            <div class="single-lead-complete-description-first-section-heading h4">'.$jobsarray[0]['title'].'  '.$new_leades.'</div>
+            <div class="single-lead-complete-description-first-section-heading h4">'.$jobDetails['title'].'  '.$new_leades.'</div>
             <div class="single-lead-desc-first-sec-loc-address d-flex justify-content-between">
                 <div>
-                    <p class="lead-desc-first-sec-loc font-weight-bold"><i class="fa fa-map"></i> '.$func->getCityName($jobsarray[0]['post_code']).", ".$func->breakPostalCode($jobsarray[0]['post_code']).'<br> <span> '.$distanceStr.'</span></p>
+                    <p class="lead-desc-first-sec-loc font-weight-bold"><i class="fa fa-map"></i> '.$func->getCityName($jobDetails['post_code']).", ".$func->breakPostalCode($jobDetails['post_code']).'<br> <span> '.$distanceStr.'</span></p>
                     <div class="phoneNumber">
                     '.$phonenumber.' 
                     <div class="verified-badge">
@@ -357,16 +323,16 @@ echo '<div class="six-fraction-inner ">
         </div>
         <div class="single-lead-complete-job-description bg-white mt-2">
             <div class="single-lead-complete-job-description-heading h4">Job details</div>
-            <div class="single-lead-complete-job-name h6">'.$main[0]['category_name'].'</div>
+            <div class="single-lead-complete-job-name h6">'.$jobDetails['category_name'].'</div>
             <ul>
-                <li>'.$sub[0]['category_name'].'</li>
+                <li>'.$jobDetails['category_name'].'</li>
             </ul>
 
             <div class="single-lead-complete-customer-description-wrapper pb-4">
                 <div class="single-lead-complete-customer-description-heading h6">Customer Description</div>
                 <div class="single-lead-complete-customer-description">
                     <p>
-                        '.$jobsarray[0]['job_discription'].'
+                        '.$jobDetails['job_discription'].'
                     </p>
                     <div class="my-1">'.$more_description.'</div>
                 <div class="single-lead-posted-date">
@@ -375,7 +341,7 @@ echo '<div class="six-fraction-inner ">
                 <div class="single-lead-posted-customer-name d-flex justify-content-between">
                     <span>Posted by '.$user[0]['fname'].'</span>
 		
-                    <span><a class="text-decoration-none" href="user-profile?u_id='.$user[0]['id'].'&job_id='.$jobsarray[0]['id'].'&usp=2&ds='.$distance.'&jc='.$initjobcount.'">View Profile <i class="fa-solid fa-chevron-right"></i></a></span>
+                    <span><a class="text-decoration-none" href="user-profile?u_id='.$user[0]['id'].'&job_id='.$jobDetails['id'].'&usp=2&ds='.$distance.'&jc='.$initjobcount.'">View Profile <i class="fa-solid fa-chevron-right"></i></a></span>
                    
                 </div>
         

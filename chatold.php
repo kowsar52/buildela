@@ -8,7 +8,7 @@ $db = new Database();
 $db->connect();
 
 $func=new  Functions();
-$func->set_last_seen($_SESSION['user_id']);
+$func->setlastSeen($_SESSION['user_id']);
 $messages=array();
 
 if(isset($_GET['touserid']) && isset($_GET['jobid']) ){

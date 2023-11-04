@@ -28,7 +28,10 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
 
     if($usercurrencies['currency'] == 'GBP') {
 
-        $monthlyprice   = $prices['monthly'];
+        $proMonthlyPrice   = $prices['pro_membership_monthly']; 
+        $proMembershipMonthlyFoYearly   = $prices['pro_membership_monthly_for_yearly']; 
+        $proYearlyPrice   = $prices['pro_membership_yearly']; 
+        $monthlyprice   = $prices['monthly']; 
         $monthlyonyearly= $prices['monthly_for_yearly'];
         $yearlyprice    = $prices['yearly'];
         $other_monthly  = $prices['other_site_monthly'];
@@ -40,6 +43,9 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
 
     }else {
 
+        $proMonthlyPrice   = $func->convertCurrency($prices['pro_membership_monthly'], $prices['currency'], $usercurrencies['currency']);
+        $proMembershipMonthlyFoYearly   = $func->convertCurrency($prices['pro_membership_monthly_for_yearly'], $prices['currency'], $usercurrencies['currency']);
+        $proYearlyPrice   = $func->convertCurrency($prices['pro_membership_yearly'], $prices['currency'], $usercurrencies['currency']);
         $monthlyprice   = $func->convertCurrency($prices['monthly'], $prices['currency'], $usercurrencies['currency']);
         $monthlyonyearly= $func->convertCurrency($prices['monthly_for_yearly'], $prices['currency'], $usercurrencies['currency']);
         $yearlyprice    = $func->convertCurrency($prices['yearly'], $prices['currency'], $usercurrencies['currency']);
@@ -724,10 +730,27 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
 
 
                                     <div class="outer">
-                                        <input type="radio" id="html" name="plan" value="monthly" onchange="planchanger(this.value)" >
-                                        <label for="html"><span class="period">Monthly</span><span class="show"><span class="monthly"><?= $currencysymbol.$monthlyprice;  ?>/month</span></span></label>
+                                        <input type="radio" id="monthly" name="plan" value="monthly" onchange="planchanger(this.value)" >
+                                        <label for="monthly"><span class="period">Monthly</span><span class="show"><span class="monthly"><?= $currencysymbol.$monthlyprice;  ?>/month</span></span></label>
                                     </div>
 
+                                    <div class="outer">
+                                        <input type="radio" id="pro_yearly" name="plan" onchange="planchanger(this.value)" value="pro_yearly">
+                                        <label for="pro_yearly">
+                                            <div style="display: flex;flex-wrap: wrap;align-items: center;gap: 6px;">
+                                                <span class="period">Buildela Pro Membership Annual</span> 
+                                                <button style="background: #24aa3c;color: #fff;font-weight: 600;font-size: 13px;">SAVE 8%</button>
+                                            </div>
+                                            <div class="select-annual" style="display: flex;flex-wrap: wrap;align-items: center;gap: 6px; width:160px;justify-content:right;min-width: 185px;text-align: right;">
+                                                <span class="show"><span class="monthly_y"><?= $currencysymbol.$proMembershipMonthlyFoYearly;  ?>/month</span></span><br>
+                                                <span class="text-muted">(<span class="yearly"><?= $currencysymbol.$proYearlyPrice;  ?> billed annually </span> )</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    <div class="outer">
+                                        <input type="radio" id="pro_monthly" name="plan" onchange="planchanger(this.value)" value="pro_monthly">
+                                        <label for="pro_monthly"><span class="period">Buildela Pro Membership Monthly</span><span class="show"><span class="monthly"><?= $currencysymbol.$proMonthlyPrice;  ?>/month</span></span></label>
+                                    </div>
                                 </div>
                                 
                                 
@@ -861,7 +884,9 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
     let ref_monthly = '<?= $prices['referral_first_month_price']; ?>';
     let ref_yearly = '<?= $prices['referral_first_year_price']; ?>';
 
-    const monthlyprice        = parseFloat(removeNonDigits("<?= $monthlyprice ?>")),
+    const proMonthlyPrice     = parseFloat(removeNonDigits("<?= $proMonthlyPrice ?>")),
+          proYearlyPrice     = parseFloat(removeNonDigits("<?= $proYearlyPrice ?>")),
+          monthlyprice        = parseFloat(removeNonDigits("<?= $monthlyprice ?>")),
           monthlyonyearly     = parseFloat(removeNonDigits("<?= $monthlyonyearly ?>")),
           yearlyprice         = parseFloat(removeNonDigits("<?= $yearlyprice ?>")),
           referralmonthly     = parseFloat(removeNonDigits("<?= $referralmonthly ?>")),
@@ -1347,10 +1372,41 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
                 
                 
             }
-
             selector = 'monthly';
             $('.choosen_plan').text(cr_sym+monthlyprice+'/month');
             $('#plans').val(<?=$prices['monthly']?>);
+
+        }else if(slector=='pro_monthly') {
+            
+            if(!referral){
+                $('#cost_now').html(cr_sym+decimalDigits(proMonthlyPrice,2));
+            }else {
+                let ydiscount = (proMonthlyPrice - referralmonthly);
+                $('#cost_now').html(cr_sym+decimalDigits(proMonthlyPrice,2));
+                $('#ref_dis').text(cr_sym+decimalDigits(ydiscount,2));
+                $('#reftotal').text(cr_sym+decimalDigits(referralmonthly,2));
+                
+                
+            }
+            selector = 'pro_monthly';
+            $('.choosen_plan').text(cr_sym+proMonthlyPrice+'/month');
+            $('#plans').val(<?=$prices['pro_monthly']?>);
+
+        } else if(slector=='pro_yearly') {
+            
+            if(!referral){
+                $('#cost_now').html(cr_sym+decimalDigits(proYearlyPrice,2));
+            }else {
+                let mdiscount = (proYearlyPrice - referralyearly);
+
+                $('#cost_now').html(cr_sym+ decimalDigits(proYearlyPrice,2));
+                $('#ref_dis').text(cr_sym+decimalDigits(mdiscount, 2));
+                $('#reftotal').text(cr_sym+decimalDigits(referralyearly,2));
+
+            }
+            selector = 'pro_yearly';
+            $('.choosen_plan').text(cr_sym+proYearlyPrice+'/year');
+            $('#plans').val(<?=$prices['pro_yearly']?>);
 
         } else {
             
@@ -1364,7 +1420,6 @@ if (isset($_SESSION['user_id'])) $func->redirect('my-profile');
                 $('#reftotal').text(cr_sym+decimalDigits(referralyearly,2));
 
             }
-
             selector = 'yearly';
             $('.choosen_plan').text(cr_sym+yearlyprice+'/year');
             $('#plans').val(<?=$prices['yearly']?>);

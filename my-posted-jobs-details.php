@@ -1250,6 +1250,76 @@ if (count($userinfo[0]['hired_counter']) > 1) {
                             </svg>
                         </label>
                     </div>
+                    <div class="q-2">
+                        <h5>How accurately did the quote match the actual cost?</h5>
+                        <div class="rating-feedback">
+                            <input type="radio" name="rating_q2" id="q2-st1" value="5" />
+                            <label for="q2-st1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12.332" height="12" viewBox="0 0 12.332 12">
+                                    <path id="Shape_2_copy_10" data-name="Shape 2 copy 10" d="M786.835,5504l2.032,3.771,4.134.813-2.878,3.144.522,4.273-3.811-1.83-3.811,1.83.522-4.273-2.877-3.144,4.134-.812,2.032-3.771" transform="translate(-780.669 -5503.998)" fill="#ECECEC" />
+                                </svg>
+                            </label>
+                            <input type="radio" name="rating_q2" id="q2-st2" value="4" />
+                            <label for="q2-st2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12.332" height="12" viewBox="0 0 12.332 12">
+                                    <path id="Shape_2_copy_10" data-name="Shape 2 copy 10" d="M786.835,5504l2.032,3.771,4.134.813-2.878,3.144.522,4.273-3.811-1.83-3.811,1.83.522-4.273-2.877-3.144,4.134-.812,2.032-3.771" transform="translate(-780.669 -5503.998)" fill="#ECECEC" />
+                                </svg>
+                            </label>
+                            <input type="radio" name="rating_q2" id="q2-st3" value="3" />
+                            <label for="q2-st3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12.332" height="12" viewBox="0 0 12.332 12">
+                                    <path id="Shape_2_copy_10" data-name="Shape 2 copy 10" d="M786.835,5504l2.032,3.771,4.134.813-2.878,3.144.522,4.273-3.811-1.83-3.811,1.83.522-4.273-2.877-3.144,4.134-.812,2.032-3.771" transform="translate(-780.669 -5503.998)" fill="#ECECEC" />
+                                </svg>
+                            </label>
+                            <input type="radio" name="rating_q2" id="q2-st4" value="2" />
+                            <label for="q2-st4">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12.332" height="12" viewBox="0 0 12.332 12">
+                                    <path id="Shape_2_copy_10" data-name="Shape 2 copy 10" d="M786.835,5504l2.032,3.771,4.134.813-2.878,3.144.522,4.273-3.811-1.83-3.811,1.83.522-4.273-2.877-3.144,4.134-.812,2.032-3.771" transform="translate(-780.669 -5503.998)" fill="#ECECEC" />
+                                </svg>
+                            </label>
+                            <input type="radio" name="rating_q2" id="q2-st5" value="1" />
+                            <label for="q2-st5">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12.332" height="12" viewBox="0 0 12.332 12">
+                                    <path id="Shape_2_copy_10" data-name="Shape 2 copy 10" d="M786.835,5504l2.032,3.771,4.134.813-2.878,3.144.522,4.273-3.811-1.83-3.811,1.83.522-4.273-2.877-3.144,4.134-.812,2.032-3.771" transform="translate(-780.669 -5503.998)" fill="#ECECEC" />
+                                </svg>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="q-3">
+                        <h5>How satisfied are you with the timeliness of job completion?</h5>
+                        <div class="rating-feedback">
+                            <input type="radio" name="rating_q3" id="q3-st1" value="5" />
+                            <label for="q3-st1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12.332" height="12" viewBox="0 0 12.332 12">
+                                    <path id="Shape_2_copy_10" data-name="Shape 2 copy 10" d="M786.835,5504l2.032,3.771,4.134.813-2.878,3.144.522,4.273-3.811-1.83-3.811,1.83.522-4.273-2.877-3.144,4.134-.812,2.032-3.771" transform="translate(-780.669 -5503.998)" fill="#ECECEC" />
+                                </svg>
+                            </label>
+                            <input type="radio" name="rating_q3" id="q3-st2" value="4" />
+                            <label for="q3-st2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12.332" height="12" viewBox="0 0 12.332 12">
+                                    <path id="Shape_2_copy_10" data-name="Shape 2 copy 10" d="M786.835,5504l2.032,3.771,4.134.813-2.878,3.144.522,4.273-3.811-1.83-3.811,1.83.522-4.273-2.877-3.144,4.134-.812,2.032-3.771" transform="translate(-780.669 -5503.998)" fill="#ECECEC" />
+                                </svg>
+                            </label>
+                            <input type="radio" name="rating_q3" id="q3-st3" value="3" />
+                            <label for="q3-st3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12.332" height="12" viewBox="0 0 12.332 12">
+                                    <path id="Shape_2_copy_10" data-name="Shape 2 copy 10" d="M786.835,5504l2.032,3.771,4.134.813-2.878,3.144.522,4.273-3.811-1.83-3.811,1.83.522-4.273-2.877-3.144,4.134-.812,2.032-3.771" transform="translate(-780.669 -5503.998)" fill="#ECECEC" />
+                                </svg>
+                            </label>
+                            <input type="radio" name="rating_q3" id="q3-st4" value="2" />
+                            <label for="q3-st4">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12.332" height="12" viewBox="0 0 12.332 12">
+                                    <path id="Shape_2_copy_10" data-name="Shape 2 copy 10" d="M786.835,5504l2.032,3.771,4.134.813-2.878,3.144.522,4.273-3.811-1.83-3.811,1.83.522-4.273-2.877-3.144,4.134-.812,2.032-3.771" transform="translate(-780.669 -5503.998)" fill="#ECECEC" />
+                                </svg>
+                            </label>
+                            <input type="radio" name="rating_q3" id="q3-st5" value="1" />
+                            <label for="q3-st5">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12.332" height="12" viewBox="0 0 12.332 12">
+                                    <path id="Shape_2_copy_10" data-name="Shape 2 copy 10" d="M786.835,5504l2.032,3.771,4.134.813-2.878,3.144.522,4.273-3.811-1.83-3.811,1.83.522-4.273-2.877-3.144,4.134-.812,2.032-3.771" transform="translate(-780.669 -5503.998)" fill="#ECECEC" />
+                                </svg>
+                            </label>
+                        </div>
+                    </div>
                     <div class="recommendation">
                         <h4>Would you recommend this tradeperson to others?</h4>
                         <div class="btn-group recommend" role="group" aria-label="Basic radio toggle button group">

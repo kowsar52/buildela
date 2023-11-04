@@ -3,9 +3,11 @@ header('Content-Type: application/json; charset=UTF-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE');
 header('Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, X-Requested-With');
+//set error reporting on without notices 
+error_reporting(E_ALL & ~E_NOTICE);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+
 date_default_timezone_set('Europe/London');
 include 'serverside/api/config.php';
 include 'serverside/functions.php';
@@ -30,13 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $country_name = isset($_GET['country_name']) ? $_GET['country_name'] : null;
             getCountries($country_name);
             break;
-        case 'fetchJobsNew':
+        case 'fetchJobs':
             $userId = isset($_GET['user_id']) ? $_GET['user_id'] : null;
             $type = isset($_GET['type']) ? $_GET['type'] : null;
             $page = isset($_GET['page']) ? $_GET['page'] : 0;
             $limit = isset($_GET['limit']) ? $_GET['limit'] : 10;
             $distance = isset($_GET['distance']) ? $_GET['distance'] : 10;  // 10km
-            fetchJobsNew($conn, $userId, $type, $page, $limit, $distance);
+            fetchJobs($conn, $userId, $type, $page, $limit, $distance);
             break;
         case 'fetchJobs':
             $userId = isset($_GET['user_id']) ? $_GET['user_id'] : null;
@@ -49,15 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $userId = isset($_GET['user_id']) ? $_GET['user_id'] : null;
             jobsLiveUpdate($conn, $userId);
             break;
-        case 'getJobAndUserDetailsNew':
-            $jobId = isset($_GET['job_id']) ? $_GET['job_id'] : null;
-            $currentUserId = isset($_GET['current_user_id']) ? $_GET['current_user_id'] : null;
-            getJobAndUserDetailsNew($conn, $jobId, $currentUserId);
-            break;
         case 'getJobAndUserDetails':
             $jobId = isset($_GET['job_id']) ? $_GET['job_id'] : null;
             $currentUserId = isset($_GET['current_user_id']) ? $_GET['current_user_id'] : null;
-            getJobAndUserDetails($conn, $jobId, $currentUserId);
+            $read_type = isset($_GET['read_type']) ? $_GET['read_type'] : null;
+            getJobAndUserDetails($conn, $jobId, $currentUserId, $read_type);
             break;
         case 'getHomeownersBlogs':
             $page = isset($_GET['page']) ? $_GET['page'] : 0;
@@ -110,6 +108,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         case 'getHomeownerRewards':
             getHomeownerRewards($conn);
             break;
+        case 'getTradespersonRewardsByUserID':
+            $userId = isset($_GET['user_id']) ? $_GET['user_id'] : null;
+            getTradespersonRewardsByUserID($conn, $userId);
+            break;
+        case 'getHomeownerRewardsByUserID':
+            $userId = isset($_GET['user_id']) ? $_GET['user_id'] : null;
+            getHomeownerRewardsByUserID($conn, $userId);
+            break;
+        case 'getDailyRewards':
+            $user_id = isset($_GET['user_id']) ? $_GET['user_id'] : null;
+            $type = isset($_GET['type']) ? $_GET['type'] : null;
+            getDailyRewards($conn, $user_id, $type);
+            break;
 
         case 'fetchCategoriesWithoutOther':
             fetchCategoriesWithoutOther($conn);
@@ -144,6 +155,9 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
             case 'login':
                 loginUser($conn, $data);
+                break;
+            case 'logout':
+                logoutUser($conn, $data);
                 break;
             case 'getJobsByUserId':
                 $userId = isset($data['user_id']) ? $data['user_id'] : null;
@@ -273,7 +287,7 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'deleteUser':
                 $userId = isset($data['user_id']) ? $data['user_id'] : null;
                 if ($userId) {
-                    deleteUserById($conn, $userId);
+                    deleteUserById($conn, $data);
                 } else {
                     echo json_encode(array('message' => 'User ID is required.'));
                 }
@@ -336,7 +350,7 @@ function dd(...$args)
     foreach ($args as $x) {
         var_dump($x);
     }
-    die (1);
+    die(1);
 }
 
 function registerUser($conn)
@@ -358,7 +372,6 @@ function registerUser($conn)
 function loginUser($conn, $data)
 {
     $email = $data['email'];
-    $password = md5($data['password']);
 
     $sql = 'SELECT * FROM users WHERE email = ?';
     $stmt = $conn->prepare($sql);
@@ -385,12 +398,25 @@ function loginUser($conn, $data)
     $result = $stmt->get_result();
     $user = $result->fetch_assoc();
 
-    if ($user && $password == $user['password']) {
+    // CHECK IF THE PASSWORD IS VERIFIED
+    $password = password_verify($data['password'], $user['password']);
+
+    if ($user && $password) {
         unset($user['password']);  // remove password from the response
         echo json_encode($user);
     } else {
         echo json_encode(array('message' => 'Invalid email or password'));
     }
+}
+
+function logoutUser($conn, $data)
+{
+    $mobile_fcm = $data['mobile_fcm'];
+
+    $sql = "DELETE FROM fcm_token WHERE token = '$mobile_fcm'";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute();
+    echo json_encode(array('message' => 'User logged out successfully!'));
 }
 
 function postJob($conn)
@@ -541,7 +567,7 @@ function fetchFilteredJobs($conn, $userId, $status, $verifiedSkills, $userData, 
     return $jobs;
 }
 
-function fetchJobsNew($conn, $userId, $type, $page, $limit, $distance)
+function fetchJobs($conn, $userId, $type, $page, $limit, $distance)
 {
     $userId = $conn->real_escape_string($userId);
     $offset = ($page - 1) * $limit;
@@ -567,36 +593,17 @@ function fetchJobsNew($conn, $userId, $type, $page, $limit, $distance)
         // Get jobs using type
 
         switch ($type) {
-            case 'all':
-                $sql = "SELECT post_job.id, post_job.title, post_job.post_code, post_job.country, post_job.location,  post_job.status, post_job.created_date,
-                            main_category.category_name,  
-                            3959 * acos (
-                                cos ( radians($user_latitude) )
-                                * cos( radians( latitude ) )
-                                * cos( radians( longitude ) - radians($user_longitude) )
-                                + sin ( radians($user_latitude) )
-                                * sin( radians( latitude ) )
-                            ) AS distance_in_miles
-                        FROM post_job 
-                        LEFT JOIN main_category ON post_job.main_type = main_category.id 
-                        WHERE post_job.main_type IN ($categories_ids)
-                        AND post_job.status = 1
-                        HAVING distance_in_miles <= ?
-                        ORDER BY post_job.created_date DESC";
-                $offset_limit_sql = $sql . ' LIMIT ? OFFSET ?';
-                $stmt = $conn->prepare($offset_limit_sql);
-                $stmt->bind_param('iii', $distance, $limit, $offset);
-                break;
-
             case 'new_leads':
                 $sql = "SELECT post_job.id, post_job.title, post_job.post_code, post_job.country, post_job.location,  post_job.status, post_job.created_date,
                             main_category.category_name,  
-                            3959 * acos (
-                                cos ( radians($user_latitude) )
-                                * cos( radians( latitude ) )
-                                * cos( radians( longitude ) - radians($user_longitude) )
-                                + sin ( radians($user_latitude) )
-                                * sin( radians( latitude ) )
+                            ROUND(
+                                3959 * acos (
+                                    cos( radians($user_latitude) ) *
+                                    cos( radians( latitude ) ) *
+                                    cos( radians( longitude ) - radians($user_longitude) ) +
+                                    sin( radians($user_latitude) ) *
+                                    sin( radians( latitude ) )
+                                ), 2
                             ) AS distance_in_miles
                         FROM post_job 
                         LEFT JOIN main_category ON post_job.main_type = main_category.id
@@ -608,6 +615,7 @@ function fetchJobsNew($conn, $userId, $type, $page, $limit, $distance)
                         ) 
                         AND post_job.main_type IN ($categories_ids)
                         AND post_job.status = 1
+                        
                         HAVING distance_in_miles <= ?
                         ORDER BY post_job.created_date DESC";
 
@@ -619,13 +627,15 @@ function fetchJobsNew($conn, $userId, $type, $page, $limit, $distance)
 
             case 'interested':
                 $sql = "SELECT post_job.id, post_job.title, post_job.post_code, post_job.country, post_job.location,  post_job.status, post_job.created_date, apply_job.status as apply_job_status , apply_job.employer_status ,apply_job.worker_status,apply_job.apply_date as apply_job_created_at , main_category.category_name, 
-                3959 * acos (
-                        cos ( radians($user_latitude) )
-                        * cos( radians( latitude ) )
-                        * cos( radians( longitude ) - radians($user_longitude) )
-                        + sin ( radians($user_latitude) )
-                        * sin( radians( latitude ) )
-                    ) AS distance_in_miles
+                ROUND(
+                    3959 * acos (
+                        cos( radians($user_latitude) ) *
+                        cos( radians( latitude ) ) *
+                        cos( radians( longitude ) - radians($user_longitude) ) +
+                        sin( radians($user_latitude) ) *
+                        sin( radians( latitude ) )
+                    ), 2
+                ) AS distance_in_miles
                 FROM post_job 
                 LEFT JOIN main_category ON post_job.main_type = main_category.id 
                 LEFT JOIN apply_job ON post_job.id = apply_job.job_id
@@ -641,20 +651,22 @@ function fetchJobsNew($conn, $userId, $type, $page, $limit, $distance)
 
             case 'shortlisted':
                 $sql = "SELECT post_job.id, post_job.title, post_job.post_code, post_job.country, post_job.location,  post_job.status, post_job.created_date, apply_job.status as apply_job_status , apply_job.employer_status ,apply_job.worker_status,apply_job.apply_date as apply_job_created_at , main_category.category_name, 
-                3959 * acos (
-                        cos ( radians($user_latitude) )
-                        * cos( radians( latitude ) )
-                        * cos( radians( longitude ) - radians($user_longitude) )
-                        + sin ( radians($user_latitude) )
-                        * sin( radians( latitude ) )
-                    ) AS distance_in_miles
+                ROUND(
+                    3959 * acos (
+                        cos( radians($user_latitude) ) *
+                        cos( radians( latitude ) ) *
+                        cos( radians( longitude ) - radians($user_longitude) ) +
+                        sin( radians($user_latitude) ) *
+                        sin( radians( latitude ) )
+                    ), 2
+                ) AS distance_in_miles
                 FROM post_job 
                 LEFT JOIN main_category ON post_job.main_type = main_category.id 
                 LEFT JOIN apply_job ON post_job.id = apply_job.job_id
                 WHERE post_job.main_type IN ($categories_ids)
                 AND post_job.status = 1
                 AND apply_job.status = 1
-                AND apply_job.employer_status = 1
+                AND apply_job.employer_status = 0
                 AND apply_job.user_id = '$userId'
                 ORDER BY apply_job.apply_date DESC";
                 $offset_limit_sql = $sql . ' LIMIT ? OFFSET ?';
@@ -677,7 +689,7 @@ function fetchJobsNew($conn, $userId, $type, $page, $limit, $distance)
                 LEFT JOIN apply_job ON post_job.id = apply_job.job_id
                 WHERE post_job.main_type IN ($categories_ids)
                 AND post_job.status = 1
-                AND apply_job.employer_status = 0
+                AND apply_job.employer_status = 1
                 AND apply_job.user_id = '$userId'
                 ORDER BY apply_job.apply_date DESC";
                 $offset_limit_sql = $sql . ' LIMIT ? OFFSET ?';
@@ -688,12 +700,14 @@ function fetchJobsNew($conn, $userId, $type, $page, $limit, $distance)
             default:
                 $sql = "SELECT post_job.id, post_job.title, post_job.post_code, post_job.country, post_job.location,  post_job.status, post_job.created_date,
                     main_category.category_name,  
-                    3959 * acos (
-                        cos ( radians($user_latitude) )
-                        * cos( radians( latitude ) )
-                        * cos( radians( longitude ) - radians($user_longitude) )
-                        + sin ( radians($user_latitude) )
-                        * sin( radians( latitude ) )
+                    ROUND(
+                        3959 * acos (
+                            cos( radians($user_latitude) ) *
+                            cos( radians( latitude ) ) *
+                            cos( radians( longitude ) - radians($user_longitude) ) +
+                            sin( radians($user_latitude) ) *
+                            sin( radians( latitude ) )
+                        ), 2
                     ) AS distance_in_miles
                 FROM post_job 
                 LEFT JOIN main_category ON post_job.main_type = main_category.id 
@@ -766,247 +780,6 @@ function fetchJobsNew($conn, $userId, $type, $page, $limit, $distance)
     }
 }
 
-// function fetchJobs($conn, $userId, $type, $page, $limit)
-// {
-//     $userId = $conn->real_escape_string($userId);
-//     $offset = $page * $limit;
-//     $func = new Apifunctions();
-
-//     $userInfo = $func->UserInfo($userId);
-//     $user_post_code = $userInfo['post_code'];
-//     $categories_ids = $func->getUserCategoryIds($userId);
-
-//     if (!empty($categories_ids)) {
-//         // Get jobs using type
-//         switch ($type) {
-//             case 'all':
-//                 $sql = "SELECT post_job.id AS job_id 
-//                         FROM post_job 
-//                         WHERE post_job.main_type IN ($categories_ids)";
-
-//                 break;
-
-//             case 'new_leads':
-//                 $sql = "SELECT post_job.id AS job_id 
-//                 FROM post_job 
-//                 WHERE post_job.main_type IN ($categories_ids) 
-//                 AND post_job.created_date >= NOW() - INTERVAL 3 HOUR
-//                 AND post_job.created_date <= NOW()";
-
-//                 break;
-
-//             case 'interested':
-//                 $sql = "SELECT job_id FROM apply_job 
-//                         WHERE status='0' AND user_id='$userId'";
-
-//                 break;
-
-//             case 'shortlisted':
-//                 $sql = "SELECT job_id FROM apply_job WHERE status='1' AND user_id='$userId'";
-//                 break;
-
-//             case 'hired':
-//                 $sql = "SELECT job_id FROM apply_job 
-//                 WHERE employer_status = 1 AND user_id='$userId'";
-//                 break;
-
-//             default:
-//                 $sql = "SELECT job_id FROM apply_job WHERE user_id='$userId'";
-//                 break;
-//         }
-
-//         if (!$stmt = $conn->prepare($sql)) {
-//             echo json_encode(array('message' => 'SQL Prepare Error: ' . $conn->error));
-//             return;
-//         }
-
-//         // $stmt->bind_param("i", $userId);
-
-//         if (!$stmt->execute()) {
-//             echo json_encode(array('message' => 'SQL Execution Error: ' . $stmt->error));
-//             return;
-//         }
-
-//         $result = $stmt->get_result();
-//         $jobIdsArray = $result->fetch_all(MYSQLI_ASSOC);
-
-//         // Convert the array of job ids for the IN clause
-//         $jobIds = implode(',', array_map(function ($entry) {
-//             return $entry['job_id'];
-//         }, $jobIdsArray));
-
-//         // If no jobs found, return empty
-//         if (empty($jobIds)) {
-//             echo json_encode(array('total_jobs' => 0, 'jobs' => array()));
-//             return;
-//         }
-
-//         $sql = "SELECT post_job.*, 
-//             main_category.category_name, 
-//             sub_category.category_name AS sub_category_name, 
-//             add_options.option,
-//             users.fname AS postby_fname, users.lname AS postby_lname, users.phone AS postby_phone, users.img_path as postby_img_path
-//         FROM post_job 
-//         LEFT JOIN main_category ON post_job.main_type = main_category.id 
-//         LEFT JOIN sub_category ON post_job.sub_type = sub_category.id 
-//         LEFT JOIN add_options ON post_job.options = add_options.id 
-//         LEFT JOIN users ON post_job.user_id = users.id 
-//         WHERE post_job.id IN ($jobIds)
-//         AND post_job.status = '1' 
-//         ORDER BY post_job.id DESC
-//         LIMIT ? OFFSET ?";
-
-//         $stmt = $conn->prepare($sql);
-//         $stmt->bind_param('ii', $limit, $offset);
-//         if (!$stmt->execute()) {
-//             echo json_encode(array('message' => 'SQL Execution Error: ' . $stmt->error));
-//             return;
-//         }
-//         $result = $stmt->get_result();
-//         // $jobs = $result->fetch_all(MYSQLI_ASSOC);
-
-//         $jobs = array();
-//         if ($result && $result->num_rows > 0) {
-//             // Fetch each row and add it to the $jobs array
-//             while ($row = $result->fetch_assoc()) {
-//                 $item = [
-//                     'id' => $row['id'],
-//                     'title' => $row['title'],
-//                     'post_code' => $row['post_code'],
-//                     'country' => $row['country'],
-//                     'location' => $row['location'],
-//                     'looking_to' => $row['looking_to'],
-//                     'how_learge' => $row['how_learge'],
-//                     'job_discription' => $row['job_discription'],
-//                     'status' => $row['status'],
-//                     'email_status' => $row['email_status'],
-//                     'created_date' => $row['created_date'],
-//                     'category_name' => $row['category_name'],
-//                     'sub_category_name' => $row['sub_category_name'],
-//                     'option' => $row['option'],
-//                 ];
-
-//                 // Findout the job distance
-//                 $job_post_code = $row['post_code'];
-//                 $job_post_code = preg_replace('/\s+/', '', $job_post_code);
-//                 $user_post_code = preg_replace('/\s+/', '', $user_post_code);
-
-//                 $mile = $func->DistanceCalculation([$job_post_code, $user_post_code], 'mile');
-//                 if ($mile) {
-//                     $distance = array(
-//                         'meters' => $mile * 1609.34,
-//                         'kilometers' => $mile * 1.60934,
-//                         'yards' => $mile * 1760,
-//                         'miles' => $mile
-//                     );
-//                 } else {
-//                     $distance = array(
-//                         'meters' => 0,
-//                         'kilometers' => 0,
-//                         'yards' => 0,
-//                         'miles' => 0
-//                     );
-//                 }
-
-//                 $item['distance'] = $distance;
-
-//                 $item['is_applied'] = false;
-//                 // Postby info & Phone Number show hide
-//                 $apply_job = $conn->query('SELECT * FROM apply_job WHERE job_id = ' . $row['id'] . " AND user_id = '$userId'")->fetch_assoc();
-//                 if (empty($apply_job)) {
-//                     $postby = [
-//                         'id' => $row['user_id'],
-//                         'username' => $row['postby_fname'],
-//                         'phone' => substr($row['postby_phone'], 0, 3) . str_repeat('*', strlen($row['postby_phone']) - 3),
-//                         'img_path' => $row['postby_img_path'],
-//                     ];
-//                 } else if ($apply_job['status'] == 0) {  // apply
-//                     $postby = [
-//                         'id' => $row['user_id'],
-//                         'username' => $row['postby_fname'],
-//                         'phone' => substr($row['postby_phone'], 0, 3) . str_repeat('*', strlen($row['postby_phone']) - 3),
-//                         'img_path' => $row['postby_img_path'],
-//                     ];
-//                     $item['is_applied'] = true;
-//                 } else if ($apply_job['status'] > 0) {
-//                     $postby = [
-//                         'id' => $row['user_id'],
-//                         'username' => $row['postby_fname'],
-//                         'phone' => $row['postby_phone'],
-//                         'img_path' => $row['postby_img_path']
-//                     ];
-//                     $item['is_applied'] = true;
-//                 }
-
-//                 $item['postby'] = $postby;
-
-//                 // check if the job created_date is less than 3 hours from now then add new_leads
-//                 $item['new_lead'] = false;  // Initialize as false
-//                 $created_date = $row['created_date'];
-//                 $created_date = strtotime($created_date);
-//                 $now = time();
-//                 $diff = $now - $created_date;
-//                 $hours = $diff / (60 * 60);
-//                 if ($hours <= 3) {
-//                     $item['new_lead'] = true;  // Set to true if the condition is met
-//                 }
-
-//                 // Job status
-//                 $item['job_status'] = $row['status'] == '1' ? 'Active' : 'Inactive';
-
-//                 // job gallery
-//                 $job_gallery = array();
-//                 $jobs_gallery_sql = 'SELECT * FROM jobs_gallery WHERE job_id = ?';
-//                 $jobs_gallery_stmt = $conn->prepare($jobs_gallery_sql);
-//                 $jobs_gallery_stmt->bind_param('i', $row['id']);
-//                 $jobs_gallery_stmt->execute();
-//                 $jobs_gallery_result = $jobs_gallery_stmt->get_result();
-//                 if ($jobs_gallery_result && $jobs_gallery_result->num_rows > 0) {
-//                     while ($jobs_gallery_row = $jobs_gallery_result->fetch_assoc()) {
-//                         $job_gallery[] = $jobs_gallery_row;
-//                     }
-//                 }
-//                 $item['job_gallery'] = $job_gallery;
-
-//                 // Findout lead read or not
-//                 // SELECT COUNT(*) FROM `read_leads_counter` WHERE user_id = 23 AND lead_ids IN (239);
-//                 $read_leads_counter_sql = 'SELECT COUNT(*) as read_leads FROM read_leads_counter WHERE user_id = ? AND lead_ids IN (?)';
-//                 $read_leads_counter_stmt = $conn->prepare($read_leads_counter_sql);
-//                 $read_leads_counter_stmt->bind_param('ii', $userId, $row['id']);
-//                 $read_leads_counter_stmt->execute();
-//                 $read_leads_counter_result = $read_leads_counter_stmt->get_result();
-//                 $item['read_lead'] = $read_leads_counter_result->fetch_assoc()['read_leads'] > 0 ? true : false;
-
-//                 // Shortlisted & Interseted Count
-//                 $jobId = $row['id'];
-//                 $item['interested'] = $conn->query("SELECT COUNT(*) as count FROM apply_job WHERE job_id = '$jobId' AND status >= 0")->fetch_assoc()['count'];
-//                 $item['shortlisted'] = $conn->query("SELECT COUNT(*) as count FROM apply_job WHERE job_id = '$jobId' AND status > 0")->fetch_assoc()['count'];
-
-//                 $jobs[] = $item;
-//             }
-//         }
-
-//         // Get the total jobs count
-//         $total_jobs_sql = "SELECT COUNT(*) as total_count FROM post_job  WHERE post_job.id IN ($jobIds)  AND post_job.status = 1";
-//         // $conn->query("SELECT COUNT(*) as count FROM apply_job WHERE job_id = '$jobId' AND status >= 0")->fetch_assoc()['count']
-//         $total_jobs_result = $conn->query($total_jobs_sql);
-//         $total_jobs = $total_jobs_result->fetch_assoc()['total_count'];
-//         $conn->close();
-//         // Create a response array that includes the total number of jobs and the jobs data
-//         $response = array(
-//             'data' => $jobs,
-//             'total' => (int) $total_jobs,
-//             'page' => $page,
-//             'limit' => $limit,
-//             'total_pages' => ceil((int) $total_jobs / $limit)
-//         );
-
-//         echo json_encode($response);
-//     } else {
-//         http_response_code(404);
-//         echo json_encode(array('message' => 'Failed! No job available.'));
-//     }
-// }
 
 /////////jobsLiveUpdate////////////////
 function jobsLiveUpdate($conn, $userId)
@@ -1150,7 +923,7 @@ function jobsLiveUpdate($conn, $userId)
         )
         AND post_job.status = 1
         AND apply_job.status = 1
-        AND apply_job.employer_status = 1
+        AND apply_job.employer_status = 0
         AND apply_job.user_id = '$userId'
         ORDER BY apply_job.apply_date DESC";
         $total_stmt = $conn->prepare($sql);
@@ -1163,15 +936,7 @@ function jobsLiveUpdate($conn, $userId)
         $total_stmt->close();
 
         // hired
-        $sql = "SELECT post_job.id, post_job.title, post_job.post_code, post_job.country, post_job.location,  post_job.status, post_job.created_date, apply_job.status as apply_job_status , apply_job.employer_status ,apply_job.worker_status,apply_job.apply_date as apply_job_created_at , main_category.category_name, 
-        3959 * acos (
-                cos ( radians($user_latitude) )
-                * cos( radians( latitude ) )
-                * cos( radians( longitude ) - radians($user_longitude) )
-                + sin ( radians($user_latitude) )
-                * sin( radians( latitude ) )
-            ) AS distance_in_miles
-        FROM post_job 
+        $sql = "SELECT post_job.id FROM post_job 
         LEFT JOIN main_category ON post_job.main_type = main_category.id 
         LEFT JOIN apply_job ON post_job.id = apply_job.job_id
         WHERE post_job.main_type IN ($categories_ids)
@@ -1182,7 +947,7 @@ function jobsLiveUpdate($conn, $userId)
             AND FIND_IN_SET( post_job.id ,read_leads_counter.jobswon_ids)
         )
         AND post_job.status = 1
-        AND apply_job.employer_status = 0
+        AND apply_job.employer_status = 1
         AND apply_job.user_id = '$userId'
         ORDER BY apply_job.apply_date DESC";
         $total_stmt = $conn->prepare($sql);
@@ -1215,7 +980,7 @@ function jobsLiveUpdate($conn, $userId)
     }
 }
 
-function getJobAndUserDetailsNew($conn, $jobId, $currentUserId = null)
+function getJobAndUserDetails($conn, $jobId, $currentUserId = null, $read_type)
 {
     if (!$jobId) {
         echo json_encode(array('message' => 'Job ID is required.'));
@@ -1242,16 +1007,16 @@ function getJobAndUserDetailsNew($conn, $jobId, $currentUserId = null)
     $user_longitude = $user_lat_long['longitude'];
 
     $sql = "SELECT post_job.*, 
-            main_category.category_name, 
-            sub_category.category_name AS sub_category_name, 
-            add_options.option,
+            main_category.id as main_category_id, main_category.category_name, 
+            sub_category.id as sub_category_id, sub_category.category_name AS sub_category_name, 
+            add_options.id as option_id, add_options.option,
             users.fname AS postby_fname, users.lname AS postby_lname, users.phone AS postby_phone, users.img_path as postby_img_path,
             3959 * acos (
                     cos ( radians($user_latitude) )
-                    * cos( radians( latitude ) )
-                    * cos( radians( longitude ) - radians($user_longitude) )
+                    * cos( radians( post_job.latitude ) )
+                    * cos( radians( post_job.longitude ) - radians($user_longitude) )
                     + sin ( radians($user_latitude) )
-                    * sin( radians( latitude ) )
+                    * sin( radians( post_job.latitude ) )
                 ) AS distance_in_miles
         FROM post_job 
         LEFT JOIN main_category ON post_job.main_type = main_category.id 
@@ -1287,9 +1052,12 @@ function getJobAndUserDetailsNew($conn, $jobId, $currentUserId = null)
         'status' => $row['status'],
         'email_status' => $row['email_status'],
         'created_date' => $row['created_date'],
+        'category_id' => $row['main_category_id'],
         'category_name' => $row['category_name'],
         'sub_category_name' => $row['sub_category_name'],
+        'sub_category_id' => $row['sub_category_id'],
         'option' => $row['option'],
+        'option_id' => $row['option_id'],
     ];
 
     $item['distance'] = [
@@ -1417,7 +1185,7 @@ function getJobAndUserDetailsNew($conn, $jobId, $currentUserId = null)
         );
     }
     // mark as rad
-    $func->setLeadRead($jobId, $userId);
+    $func->setLeadRead($jobId, $userId, $read_type);
 
     echo json_encode($item);
 }
@@ -1433,130 +1201,7 @@ function getApplyUserStatus($conn, $user_id, $job_id)
     }
 }
 
-function getJobAndUserDetails($conn, $jobId, $currentUserId = null)
-{
-    if (!$jobId) {
-        echo json_encode(array('message' => 'Job ID is required.'));
-        return;
-    }
 
-    $response = array();
-
-    // Get job details
-    $sql = 'SELECT * FROM post_job WHERE id = ?';
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param('i', $jobId);
-    if ($stmt->execute()) {
-        $response['job'] = $stmt->get_result()->fetch_assoc();
-
-        // Fetch job poster's details
-        $posterId = $response['job']['user_id'];
-        $sqlPoster = 'SELECT fname, phone FROM users WHERE id = ?';
-        $stmtPoster = $conn->prepare($sqlPoster);
-        $stmtPoster->bind_param('i', $posterId);
-        if ($stmtPoster->execute()) {
-            $response['job_poster_details'] = $stmtPoster->get_result()->fetch_assoc();
-        } else {
-            echo 'SQL error (fetching job poster details): ' . $stmtPoster->error;
-            return;
-        }
-    } else {
-        echo 'SQL error: ' . $stmt->error;
-        return;
-    }
-
-    // Get job gallery
-    $sql = 'SELECT * FROM jobs_gallery WHERE job_id = ?';
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param('i', $jobId);
-    $job_gallery_video = array();
-    $job_gallery_image = array();
-    if ($stmt->execute()) {
-        $jobGallery = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        foreach ($jobGallery as $item) {
-            if ($item['file_type'] === 'video') {
-                $job_gallery_video[] = $item;
-            } elseif ($item['file_type'] === 'image') {
-                $job_gallery_image[] = $item;
-            }
-        }
-        $response['job_gallery_video'] = $job_gallery_video;
-        $response['job_gallery_image'] = $job_gallery_image;
-    } else {
-        echo 'SQL error: ' . $stmt->error;
-        return;
-    }
-
-    // Get users applied
-    $sql = 'SELECT * FROM apply_job WHERE job_id = ?';
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param('i', $jobId);
-    if ($stmt->execute()) {
-        $usersApplied = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        foreach ($usersApplied as &$user) {  // Note the use of & for reference
-            $userId = $user['user_id'];
-
-            // Fetch trading_name for the user
-            $sqlUser = 'SELECT trading_name FROM users WHERE id = ?';
-            $stmtUser = $conn->prepare($sqlUser);
-            $stmtUser->bind_param('i', $userId);
-            if ($stmtUser->execute()) {
-                $userDetails = $stmtUser->get_result()->fetch_assoc();
-                $user['trading_name'] = $userDetails['trading_name'];
-            } else {
-                echo 'SQL error (fetching trading_name): ' . $stmtUser->error;
-                return;
-            }
-
-            // Fetch user ratings
-            $sqlRating = 'SELECT * FROM rateuser WHERE user_id = ? ORDER BY id DESC';
-            $stmtRating = $conn->prepare($sqlRating);
-            $stmtRating->bind_param('i', $userId);
-            if ($stmtRating->execute()) {
-                $ratings = $stmtRating->get_result()->fetch_all(MYSQLI_ASSOC);
-                $user['ratings'] = $ratings;
-                $user['ratings_count'] = count($ratings);  // Add ratings count
-            } else {
-                echo 'SQL error (fetching ratings): ' . $stmtRating->error;
-                return;
-            }
-        }
-        $response['users_applied'] = $usersApplied;
-    } else {
-        echo 'SQL error: ' . $stmt->error;
-        return;
-    }
-
-    // Get interested count
-    $sql = 'SELECT COUNT(*) as count FROM apply_job WHERE job_id = ?';
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param('i', $jobId);
-    if ($stmt->execute()) {
-        $response['interested_count'] = $stmt->get_result()->fetch_assoc()['count'];
-    } else {
-        echo 'SQL error: ' . $stmt->error;
-        return;
-    }
-
-    // Get shortlisted count
-    $sql = "SELECT COUNT(*) as count FROM apply_job WHERE job_id = ? and status != '0'";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param('i', $jobId);
-    if ($stmt->execute()) {
-        $response['shortlisted_count'] = $stmt->get_result()->fetch_assoc()['count'];
-    } else {
-        echo 'SQL error: ' . $stmt->error;
-        return;
-    }
-
-    if ($currentUserId !== null) {
-        $response['current_user'] = array(
-            'application_status' => getApplyUserStatus($conn, $currentUserId, $jobId)
-        );
-    }
-
-    echo json_encode($response, JSON_PRETTY_PRINT);
-}
 
 function getUserById($conn, $userId)
 {
@@ -2218,8 +1863,6 @@ function postJobWithMedia($conn, $data)
         $latitude = $lat_long['latitude'];
         $longitude = $lat_long['longitude'];
         $location = $lat_long['location'];
-     
-
     } else {
         http_response_code(404);
         echo json_encode(array('message' => 'Invalid post code'), JSON_PRETTY_PRINT);
@@ -2236,11 +1879,12 @@ function postJobWithMedia($conn, $data)
     $country = $conn->real_escape_string($data['country']);
     $current_date = date('Y-m-d H:i:s');
     $isEdit = false;
-    if (isset($data['job_id']) && $data['job_id'] != ''){
+    if (isset($data['job_id']) && $data['job_id'] != '') {
         //check if the job is exists in db
         $job_id = $conn->real_escape_string($data['job_id']);
         $sql = "SELECT * FROM post_job WHERE id = '$job_id' AND user_id = '$user_id'";
         $result = $conn->query($sql);
+
         if ($result->num_rows > 0) {
             $isEdit = true;
         }
@@ -2269,15 +1913,15 @@ function postJobWithMedia($conn, $data)
                 $remove_image_ids = $conn->real_escape_string($data['remove_image_ids']);
                 //explode remove_image_ids to array
                 $remove_image_ids = explode(',', $remove_image_ids);
-                
+
                 $remove_image_ids = array_diff($remove_image_ids, array(''));
                 if (count($remove_image_ids) > 0) {
-                   foreach ($remove_image_ids as $remove_image_id) {
+                    foreach ($remove_image_ids as $remove_image_id) {
                         $remove_image_id = (int) $remove_image_id;
                         //select image and unlink the image
                         $sql = "SELECT * FROM jobs_gallery WHERE id = '$remove_image_id'";
                         $result = $conn->query($sql);
-                      
+
                         if ($result->num_rows > 0) {
                             $row = $result->fetch_assoc();
                             $img_path = $row['img_path'];
@@ -2552,7 +2196,7 @@ function getChatList($conn, $user_id)
         $userQuery = 'SELECT id, trading_name, email, fname, lname, company_name, online_status, last_seen, is_typing, typing_for, img_path FROM users WHERE id = ?';
         $userStmt = $conn->prepare($userQuery);
         if (!$userStmt) {
-            die ('Failed preparing user query: ' . $conn->error);
+            die('Failed preparing user query: ' . $conn->error);
         }
 
         $userStmt->bind_param('i', $partner_id);
@@ -2568,7 +2212,7 @@ function getChatList($conn, $user_id)
         $messageQuery = 'SELECT message, create_date FROM chat_messages WHERE ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)) AND job_id = ? ORDER BY create_date DESC LIMIT 1';
         $messageStmt = $conn->prepare($messageQuery);
         if (!$messageStmt) {
-            die ('Failed preparing message query: ' . $conn->error);
+            die('Failed preparing message query: ' . $conn->error);
         }
 
         $messageStmt->bind_param('iiiii', $user_id, $partner_id, $partner_id, $user_id, $partner['job_id']);
@@ -2660,6 +2304,32 @@ function postChatMessage($conn, $my_id, $touserid, $jobid, $message)
             }
         }
 
+        ######## NOTIFICATION START ########
+        $title = "You have a new message.";
+        $body =  $message;
+        $res = $conn->query("SELECT token FROM fcm_token WHERE user_id = '$touserid'");
+        $notify_user_tokens = [];
+        if ($res && $res->num_rows > 0) {
+            while ($row = $res->fetch_assoc()) {
+                $notify_user_tokens[] = $row['token'];
+            }
+        }
+
+        $notification = [
+            'title' => $title,
+            'body' => $body,
+            'icon' => 'https://buildela.com/images/fav-icon.ico',
+            'sound' => "default",
+            'priority' => 'high',
+            'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+            'data' => [
+                'type' => 'message',
+                'message' => $message,
+            ]
+        ];
+
+        $Functions->sendNotification($notify_user_tokens, $notification);
+        ######## NOTIFICATION END ########
         echo json_encode(array('status' => 'success', 'message' => 'Message posted successfully!'), JSON_PRETTY_PRINT);
     } else {
         echo json_encode(array('status' => 'error', 'message' => 'Failed to post the message.'), JSON_PRETTY_PRINT);
@@ -2728,7 +2398,8 @@ function homeownerSignup($conn, $data)
     $lname = htmlspecialchars(stripslashes($data['lname']));
     $email = htmlspecialchars(stripslashes($data['email']));
     $pass1 = htmlspecialchars(stripslashes($data['pass1']));
-    $haspass = md5($pass1);
+    // $haspass = md5($pass1);
+    $haspass = password_hash($pass1, PASSWORD_DEFAULT);
     $phone = htmlspecialchars(stripslashes($data['phone']));
     $address = htmlspecialchars(stripslashes($data['address']));
     $address1 = htmlspecialchars(stripslashes($data['address1']));
@@ -2813,33 +2484,44 @@ function applyJob($conn, $job_id, $location, $message, $user_id)
 
             ######## NOTIFICATION START ########
             // send notification to tradesperson [username] applied for your job
-            $sql = "SELECT users.id,users.fname, users.web_fcm,users.mobile_fcm,post_job.id FROM users
+            $sql = "SELECT users.id,users.fname,post_job.title FROM users
             JOIN post_job ON post_job.user_id = users.id
             WHERE post_job.id = '$job_id' LIMIT 1";
-            $result = $conn->query($sql);
+            $result = $conn->query($sql)->fetch_assoc();
 
             $notify_user_tokens = [];
             $username = '';
-            if ($result->num_rows > 0) {
-            while ($row = $result->fetch_assoc()) {
-                $username = $row['fname'];
-                //push web_fcm and mobile_fcm to array
-                if ($row['web_fcm'] != '') {
-                    $notify_user_tokens[] = $row['web_fcm'];
-                }
-                if ($row['mobile_fcm'] != '') {
-                    $notify_user_tokens[] = $row['mobile_fcm'];
+            $job_title = '';
+            if($result){
+                $job_title = $result['title'];
+                $to_user_id = $result['id'];
+                $sql = "SELECT token from fcm_token WHERE user_id = '$to_user_id'";
+                $result = $conn->query($sql);
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        $notify_user_tokens[] = $row['token'];
+                    }
                 }
             }
-            }
-           
-            $title = $username. ' applied for your job';
-            $body =  $username. ' applied for your job';
+            $username = $conn->query("SELECT users.fname FROM users WHERE users.id = '$user_id'")->fetch_assoc()['fname'];
+            $title = $username . ' applied for your job';
+            $body =  $username . ' applied for your job';
 
+           
             $notification = [
                 'title' => $title,
-                'body' => $body
+                'body' => $body,
+                'icon' => 'https://buildela.com/images/fav-icon.ico',
+                'sound' => "default",
+                'priority' => 'high',
+                'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                'data' => [
+                    'type' => 'leads_detail',
+                    'job_id' => $job_id,
+                    'job_title' => $job_title,
+                ]
             ];
+            
             $Functions = new Functions();
             $Functions->sendNotification($notify_user_tokens, $notification);
             ######## NOTIFICATION END ########
@@ -2873,33 +2555,45 @@ function completeJob($conn, $user_id, $job_id)
 
             ######## NOTIFICATION START ########
             // send notification to tradesperson [username] applied for your job
-            $sql = "SELECT users.id,users.fname, users.web_fcm,users.mobile_fcm FROM users JOIN post_job ON post_job.user_id = users.id WHERE post_job.id = '$job_id' LIMIT 1";
+            $sql = "SELECT users.id,users.fname, post_job.title FROM users JOIN post_job ON post_job.user_id = users.id WHERE post_job.id = '$job_id' LIMIT 1";
             $result = $conn->query($sql);
 
             $notify_user_tokens = [];
             $username = '';
+            $job_title = '';
             if ($result->num_rows > 0) {
                 while ($row = $result->fetch_assoc()) {
                     $username = $row['fname'];
-                    //push web_fcm and mobile_fcm to array
-                    if ($row['web_fcm'] != '') {
-                        $notify_user_tokens[] = $row['web_fcm'];
-                    }
-                    if ($row['mobile_fcm'] != '') {
-                        $notify_user_tokens[] = $row['mobile_fcm'];
+                    $job_title = $row['title'];
+                    $sql = "SELECT token from fcm_token WHERE user_id = '$row[id]'";
+                    $result = $conn->query($sql);
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            $notify_user_tokens[] = $row['token'];
+                        }
                     }
                 }
             }
-            
+
             // $category_name = $conn->query('SELECT category_name FROM main_category WHERE id = ' . $main_type)->fetch_assoc()['category_name'];
             $from_username = $conn->query("SELECT users.fname FROM users WHERE users.id = '$user_id'")->fetch_assoc()['fname'];
-            $title = $from_username. 'completed your job.';
-            $body =  $from_username. 'completed your job.';
+            $title = $from_username . ' completed your job.';
+            $body =  $from_username . ' completed your job.';
 
             $notification = [
                 'title' => $title,
-                'body' => $body
+                'body' => $body,
+                'icon' => 'https://buildela.com/images/fav-icon.ico',
+                'sound' => "default",
+                'priority' => 'high',
+                'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                'data' => [
+                    'type' => 'leads_detail',
+                    'job_id' => $job_id,
+                    'job_title' => $job_title,
+                ]
             ];
+
             $Functions = new Functions();
             $Functions->sendNotification($notify_user_tokens, $notification);
             ######## NOTIFICATION END ########
@@ -2932,6 +2626,40 @@ function startJob($conn, $user_id, $job_id)
         if ($conn->affected_rows > 0) {
             $response['status'] = 'success';
             $response['message'] = 'Job started successfully!';
+
+            ######## NOTIFICATION START ########
+            $from_user = $conn->query("SELECT users.fname, post_job.title FROM users JOIN post_job ON post_job.user_id = users.id WHERE post_job.id = '$job_id'")->fetch_assoc();
+            $from_user_name = $from_user['fname'];
+            $job_title = $from_user['title'];
+
+            $title = $from_user_name . ' has hired you';
+            $body =  $from_user_name . ' has hired you';
+
+            $fcm_tokens = $conn->query("SELECT token FROM fcm_token WHERE user_id = '$user_id'");
+            $notify_user_tokens = [];
+            if ($fcm_tokens->num_rows > 0) {
+                while ($row = $fcm_tokens->fetch_assoc()) {
+                    $notify_user_tokens[] = $row['token'];
+                }
+            }
+
+            $notification = [
+                'title' => $title,
+                'body' => $body,
+                'icon' => 'https://buildela.com/images/fav-icon.ico',
+                'sound' => "default",
+                'priority' => 'high',
+                'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                'data' => [
+                    'type' => 'leads_detail',
+                    'job_id' => $job_id,
+                    'job_title' => $job_title,
+                ]
+            ];
+            $Functions = new Functions();
+            $Functions->sendNotification($notify_user_tokens, $notification);
+            ######## NOTIFICATION END ########
+
         } else {
             $response['status'] = 'error';
             $response['message'] = 'No job found with the specified user ID and job ID, or the job is already started.';
@@ -2944,26 +2672,67 @@ function startJob($conn, $user_id, $job_id)
     echo json_encode($response, JSON_PRETTY_PRINT);
 }
 
-function deleteUserById($conn, $userId)
-{
-    if (!$userId) {
-        echo json_encode(array('message' => 'User ID is required.'), JSON_PRETTY_PRINT);
-        return;
+function deleteUserById($conn, $data)
+{   
+
+    $id = htmlspecialchars(stripslashes($_POST['user_id']));
+    $surveyAnswer = htmlspecialchars(stripslashes($_POST['surveyAnswer']));
+    // $surveyAnswer_val = (int)$_POST['surveyAnswer'];
+    // switch ($surveyAnswer_val) {
+    //     case 0:
+    //         $surveyAnswer = 'Unhappy with the service that we are offering.';
+    //         break;
+    //     case 1:
+    //         $surveyAnswer = 'Frustrated with our customer service team.';
+    //         break;
+    //     case 2:
+    //         $surveyAnswer = 'Too expensive.';
+    //         break;
+    //     case 3:
+    //         $surveyAnswer = 'Found another service offering a more suitable product.';
+    //         break;
+    //     case 4:
+    //         $surveyAnswer = 'Not winning enough leads.';
+    //         break;
+    // }
+    $id = $conn->real_escape_string($id);
+    $deleted_users_table = "canceled_users_new";
+    $days_left_value = 0;
+    $result_data = $conn->query("SHOW TABLES LIKE '$newTable'");
+    if ($result_data && $result_data->num_rows > 0) {
+        // The new table already exists
+    } else {
+        $conn->query("CREATE TABLE $deleted_users_table AS
+                  SELECT *,  NOW() AS day_left, '' AS reason_left FROM users WHERE 1=0");
     }
 
-    // Prepare the DELETE statement
-    $sql = 'DELETE FROM users WHERE id = ?';
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param('i', $userId);
+    // insert the data 
+    $conn->query("INSERT INTO $deleted_users_table SELECT *,NOW() AS day_left, '$surveyAnswer' AS reason_left FROM users WHERE id='$id'");
+    $Functions = new Functions();
+    $Functions->deleteStripeSubscription($id);
 
-    if ($stmt->execute()) {
-        if ($stmt->affected_rows > 0) {
-            echo json_encode(array('message' => 'User successfully deleted.'), JSON_PRETTY_PRINT);
-        } else {
-            echo json_encode(array('message' => 'No user found with the specified ID.'), JSON_PRETTY_PRINT);
-        }
+    $sql = "DELETE from users where id='$id'";
+    if ($conn->query($sql)) {
+
+        $sql = "DELETE from rateuser where user_id='$id'";
+        $conn->query($sql);
+
+        $sql = "DELETE from verify_skill where user_id='$id'";
+        $conn->query($sql);
+
+        $sql = "DELETE from post_job where user_id='$id'";
+        $conn->query($sql);
+
+        $sql = "DELETE from gallery where user_id='$id'";
+        $conn->query($sql);
+
+        $sql = "DELETE from apply_job where user_id='$id'";
+        $conn->query($sql);
+
+       echo json_encode(array('status' => 'success', 'message' => 'User deleted successfully!'), JSON_PRETTY_PRINT);
     } else {
-        echo 'SQL error: ' . $stmt->error;
+        http_response_code(400);
+        echo json_encode(array('status' => 'error', 'message' => 'Failed to delete the user.'), JSON_PRETTY_PRINT);
     }
 }
 
@@ -3085,6 +2854,52 @@ function getHomeownerRewards($conn)
         echo json_encode(array('message' => 'No homeowner rewards found.'), JSON_PRETTY_PRINT);
     }
 }
+function getTradespersonRewardsByUserID($conn, $user_id)
+{
+     $sql = "SELECT * FROM `tradesperson_reward` WHERE user_id='$user_id' ORDER BY `reward_date` DESC";
+    $result = $conn->query($sql);
+
+    $rewards = array();
+
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $rewards[] = $row;
+        }
+        echo json_encode(array('tradesperson_rewards' => $rewards), JSON_PRETTY_PRINT);
+    } else {
+        echo json_encode(array('message' => 'No tradesperson rewards found.'), JSON_PRETTY_PRINT);
+    }
+}
+
+function getHomeownerRewardsByUserID($conn, $user_id)
+{
+    $sql = "SELECT * FROM `homeowner_reward` WHERE user_id='$user_id' ORDER BY `reward_date` DESC";
+    $result = $conn->query($sql);
+
+    $rewards = array();
+
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $rewards[] = $row;
+        }
+        echo json_encode(array('homeowner_rewards' => $rewards), JSON_PRETTY_PRINT);
+    } else {
+        echo json_encode(array('message' => 'No homeowner rewards found.'), JSON_PRETTY_PRINT);
+    }
+}
+
+function getDailyRewards($conn, $user_id, $type)
+{
+     $sql = "SELECT * FROM `$type` WHERE user_id = '$user_id' ORDER BY `reward_date` DESC LIMIT 1";
+   
+    $result = $conn->query($sql)->fetch_assoc();
+    if($result){
+        echo json_encode(array('daily_rewards' => $result), JSON_PRETTY_PRINT);
+    }else{
+        http_response_code(404);
+        echo json_encode(array('message' => 'No daily rewards found.'), JSON_PRETTY_PRINT);
+    }
+}
 
 function shortlist($conn, $userId, $jobId)
 {
@@ -3099,7 +2914,7 @@ function shortlist($conn, $userId, $jobId)
 
         ######## NOTIFICATION START ########
         // send notification to tradesperson [username] applied for your job
-        $sql = "SELECT users.id,users.fname, users.web_fcm,users.mobile_fcm FROM users
+        $sql = "SELECT users.id,users.fname FROM users
         WHERE users.id = '$userId' LIMIT 1";
         $result = $conn->query($sql);
 
@@ -3108,24 +2923,35 @@ function shortlist($conn, $userId, $jobId)
         if ($result->num_rows > 0) {
             while ($row = $result->fetch_assoc()) {
                 $username = $row['fname'];
-                //push web_fcm and mobile_fcm to array
-                if ($row['web_fcm'] != '') {
-                    $notify_user_tokens[] = $row['web_fcm'];
-                }
-                if ($row['mobile_fcm'] != '') {
-                    $notify_user_tokens[] = $row['mobile_fcm'];
+                $sql = "SELECT token from fcm_token WHERE user_id = '$row[id]'";
+                $result = $conn->query($sql);
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        $notify_user_tokens[] = $row['token'];
+                    }
                 }
             }
         }
-        
-        // $category_name = $conn->query('SELECT category_name FROM main_category WHERE id = ' . $main_type)->fetch_assoc()['category_name'];
-        $from_username = $conn->query("SELECT users.fname FROM users JOIN post_job ON post_job.user_id = users.id WHERE post_job.id = '$jobId'")->fetch_assoc()['fname'];
-        $title = $from_username. ' has shortlisted you.';
-        $body =  $from_username. ' has shortlisted you.';
 
-        $notification = [
+        // $category_name = $conn->query('SELECT category_name FROM main_category WHERE id = ' . $main_type)->fetch_assoc()['category_name'];
+        $from_user = $conn->query("SELECT users.fname, post_job.title FROM users JOIN post_job ON post_job.user_id = users.id WHERE post_job.id = '$jobId'")->fetch_assoc();
+        $from_username = $from_user['fname'];
+        $job_title = $from_user['title'];
+        $title = $from_username . ' has shortlisted you.';
+        $body =  $from_username . ' has shortlisted you.';
+
+         $notification = [
             'title' => $title,
-            'body' => $body
+            'body' => $body,
+            'icon' => 'https://buildela.com/images/fav-icon.ico',
+            'sound' => "default",
+            'priority' => 'high',
+            'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+            'data' => [
+                'type' => 'leads_detail',
+                'job_id' => $jobId,
+                'job_title' => $job_title,
+            ]
         ];
         $Functions = new Functions();
         $Functions->sendNotification($notify_user_tokens, $notification);
@@ -3147,6 +2973,40 @@ function employerStartJob($conn, $userId, $jobId)
     $sql = "UPDATE apply_job SET worker_status=1 WHERE user_id='$userId' AND job_id='$jobId'";
 
     if ($conn->query($sql) === TRUE) {
+        ######## NOTIFICATION START ########
+        $from_user_name = $conn->query("SELECT users.fname FROM users WHERE users.id = '$userId'")->fetch_assoc()['fname'];
+
+        $title = $from_user_name . ' accepted your job';
+        $body =  $from_user_name . ' accepted your job';
+
+        $fcm_tokens = $conn->query("SELECT token, post_job.title FROM fcm_token JOIN post_job ON post_job.user_id = fcm_token.user_id WHERE post_job.id = '$jobId'");
+        $notify_user_tokens = [];
+        $job_title = '';
+        if ($fcm_tokens->num_rows > 0) {
+            while ($row = $fcm_tokens->fetch_assoc()) {
+                $job_title = $row['title'];
+                $notify_user_tokens[] = $row['token'];
+            }
+        }
+
+        $notification = [
+            'title' => $title,
+            'body' => $body,
+            'icon' => 'https://buildela.com/images/fav-icon.ico',
+            'sound' => "default",
+            'priority' => 'high',
+            'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+            'data' => [
+                'type' => 'leads_detail',
+                'job_id' => $jobId,
+                'job_title' => $job_title,
+            ]
+        ];
+
+        $Functions = new Functions();
+        $Functions->sendNotification($notify_user_tokens, $notification);
+        ######## NOTIFICATION END ########
+
         echo json_encode(array('message' => 'Employer status updated successfully'), JSON_PRETTY_PRINT);
     } else {
         echo json_encode(array('message' => 'Error updating employer status: ' . $conn->error), JSON_PRETTY_PRINT);
@@ -3155,6 +3015,7 @@ function employerStartJob($conn, $userId, $jobId)
 
 function ratingUser($conn, $fromUserId, $userId, $jobId, $jobTitle, $stars, $recommends, $message, $userInfo)
 {
+
     // Ensure the provided data is safe to use in a query
     $fromUserId = $conn->real_escape_string($fromUserId);
     $userId = $conn->real_escape_string($userId);
@@ -3173,6 +3034,37 @@ function ratingUser($conn, $fromUserId, $userId, $jobId, $jobTitle, $stars, $rec
         $sql = "UPDATE apply_job SET rating=1 WHERE user_id='$userId' AND job_id='$jobId'";
 
         if ($conn->query($sql) === TRUE) {
+            ######## NOTIFICATION START ########
+            $from_user_name = $conn->query("SELECT users.fname FROM users WHERE users.id = '$fromUserId'")->fetch_assoc()['fname'];
+
+            $title = $from_user_name . ' has left feedback on how the job went';
+            $body =  $from_user_name . ' has left feedback on how the job went';
+
+            $fcm_tokens = $conn->query("SELECT token FROM fcm_token WHERE user_id = '$userId'");
+            $notify_user_tokens = [];
+            if ($fcm_tokens->num_rows > 0) {
+                while ($row = $fcm_tokens->fetch_assoc()) {
+                    $notify_user_tokens[] = $row['token'];
+                }
+            }
+
+            $notification = [
+                'title' => $title,
+                'body' => $body,
+                'icon' => 'https://buildela.com/images/fav-icon.ico',
+                'sound' => "default",
+                'priority' => 'high',
+                'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                'data' => [
+                    'type' => 'leads_detail',
+                    'job_id' => $jobId,
+                    'job_title' => $jobTitle,
+                ]
+            ];
+            $Functions = new Functions();
+            $Functions->sendNotification($notify_user_tokens, $notification);
+            ######## NOTIFICATION END ########
+
             echo json_encode(array('message' => 'Rating inserted and updated successfully.'), JSON_PRETTY_PRINT);
         } else {
             echo json_encode(array('message' => 'Rating inserted but failed to update apply_job: ' . $conn->error), JSON_PRETTY_PRINT);
@@ -3348,32 +3240,46 @@ function updateFcmToken($conn, $data)
     // Ensure the provided user ID and FCM token are safe to use in a query
     $userId = $conn->real_escape_string($data['user_id']);
     $fcmToken = $conn->real_escape_string($data['mobile_fcm']);
-
-    // Prepare the SQL statement
-    $sql = 'UPDATE users SET mobile_fcm = ? WHERE id = ?';
+    $sql = 'SELECT id FROM fcm_token WHERE user_id = ? AND token = ?';
     $stmt = $conn->prepare($sql);
-
-    // Check if the statement preparation failed
     if (!$stmt) {
+        http_response_code(500);
         echo json_encode(array('message' => 'Failed to prepare statement.'), JSON_PRETTY_PRINT);
         return;
     }
-
-    // Bind the FCM token and user ID to the SQL statement and execute it
-    $stmt->bind_param('si', $fcmToken, $userId);
+    $stmt->bind_param('is', $userId, $fcmToken);
     $executeResult = $stmt->execute();
-
-    // Check if the execution failed
     if (!$executeResult) {
+        http_response_code(500);
         echo json_encode(array('message' => 'Failed to execute statement.'), JSON_PRETTY_PRINT);
         return;
     }
+    $result = $stmt->get_result();
+    if ($result->num_rows <= 0) {
+        // Prepare the SQL statement
+        $sql = 'INSERT INTO fcm_token (user_id, token) VALUES (?, ?)';
+        $stmt = $conn->prepare($sql);
 
-    // Check if the user ID exists
-    if (userIdExists($conn, $userId)) {
-        echo json_encode(array('message' => 'FCM token updated successfully.'), JSON_PRETTY_PRINT);
-    } else {
-        echo json_encode(array('message' => 'No user found with the specified ID.'), JSON_PRETTY_PRINT);
+        // Check if the statement preparation failed
+        if (!$stmt) {
+            http_response_code(500);
+            echo json_encode(array('message' => 'Failed to prepare statement.'), JSON_PRETTY_PRINT);
+            return;
+        }
+
+        // Bind the FCM token and user ID to the SQL statement and execute it
+        $stmt->bind_param('is', $userId, $fcmToken);
+        $executeResult = $stmt->execute();
+
+        // Check if the execution failed
+        if (!$executeResult) {
+            http_response_code(500);
+            echo json_encode(array('message' => 'Failed to execute statement.'), JSON_PRETTY_PRINT);
+            return;
+        }
+
+        echo json_encode(array('message' => 'FCM token saved successfully.'), JSON_PRETTY_PRINT);
+        return;
     }
 }
 
@@ -3396,5 +3302,3 @@ function compressImage($source, $destination, $compressionPercentage)
     // Destroy the Imagick instance
     $imagick->destroy();
 }
-
-?>

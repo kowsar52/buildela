@@ -1,4 +1,4 @@
-<section class="footer-dark wf-section">
+<!-- <section class="footer-dark wf-section">
     <div class="container-7">
       <div class="footer-wrapper">
         <a href="#" class="footer-brand w-inline-block"><img width="200px" src="<?php echo BASE_URL; ?>images/buildela-logo-w.png" loading="lazy" alt="" class="image-8"></a>
@@ -7,7 +7,7 @@
     </div>
     <div class="footer-divider"></div>
     <div class="footer-copyright-center">Copyright © 2022 Buildela</div>
-  </section>
+  </section> -->
   <script src="https://d3e54v103j8qbb.cloudfront.net/js/jquery-3.5.1.min.dc5e7f18c8.js?site=63594e2b152cff3d3e2c50f6" type="text/javascript" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
   <script src="<?php echo BASE_URL; ?>js/webflow.js" type="text/javascript"></script>
   <!-- [if lte IE 9]><script src="https://cdnjs.cloudflare.com/ajax/libs/placeholders/3.0.2/placeholders.min.js"></script><![endif] -->
@@ -233,74 +233,74 @@
 
 <?php if(isset($_SESSION)): ?>
 <script>
-    $(document).ready(function(){
-      let ajaxCall          = true,
-          notificationplay  = 0,
-          currentURL        = window.location.href,
-          user_ID,
-          jobId;
+    // $(document).ready(function(){
+    //   let ajaxCall          = true,
+    //       notificationplay  = 0,
+    //       currentURL        = window.location.href,
+    //       user_ID,
+    //       jobId;
 
 
 
-        if (currentURL.includes("my-posted-jobs-details")) {
-            let urlCons   = new URLSearchParams(window.location.search);
-                jobId     = urlCons.get("job_id");
-            let URLs      = $('.userpf-link').attr('href');
-            let urlParams = new URLSearchParams(URLs.split('?')[1]);
-                user_ID   = urlParams.get('u_id');
-        }
+    //     if (currentURL.includes("my-posted-jobs-details")) {
+    //         let urlCons   = new URLSearchParams(window.location.search);
+    //             jobId     = urlCons.get("job_id");
+    //         let URLs      = $('.userpf-link').attr('href');
+    //         let urlParams = new URLSearchParams(URLs.split('?')[1]);
+    //             user_ID   = urlParams.get('u_id');
+    //     }
 
-        if (currentURL.includes("user-profile")) {
-            let urlParams   = new URLSearchParams(window.location.search);
-                jobId       = urlParams.get("job_id");
-                user_ID     = urlParams.get('u_id');
-        }
+    //     if (currentURL.includes("user-profile")) {
+    //         let urlParams   = new URLSearchParams(window.location.search);
+    //             jobId       = urlParams.get("job_id");
+    //             user_ID     = urlParams.get('u_id');
+    //     }
 
 
-      if(ajaxCall === true) {
-        ajaxCall = false;
+    //   if(ajaxCall === true) {
+    //     ajaxCall = false;
         
-        setInterval(function(e){
+    //     setInterval(function(e){
 
-            $.ajax({
-                url:"serverside/post.php",
-                method:"post",
-                data:{
-                    func:113,
-                    url: currentURL,
-                    userid: user_ID,
-                    jobid: jobId
-                },
-                success:function(data){
+    //         $.ajax({
+    //             url:"serverside/post.php",
+    //             method:"post",
+    //             data:{
+    //                 func:113,
+    //                 url: currentURL,
+    //                 userid: user_ID,
+    //                 jobid: jobId
+    //             },
+    //             success:function(data){
 
-                    ajaxCall = true;
-                    data = JSON.parse(data);
-                    if(data.newmsgcount > 0){
-                      let msgdot = '<span style="" class="bg-danger position-absolute text-white rounded-circle px-1 my-ac">'+data.newmsgcount+'</span>'
-                      $('.account.w-dropdown ').removeClass('notice-on').addClass('notice-on');
-                      $('.text-block-2.account span').remove();
-                      $('.text-block-2.account').append(msgdot);
-                      $('#chatmenulink span').remove();
-                      $('#chatmenulink').append('<span style="top: 10px;right: 15px;font-size: 15px;font-size: 12px; height: 18px!important;width: 14px!important;" class="bg-danger position-absolute text-white rounded-circle px-1">'+data.newmsgcount+'</span>');
-                    } else {
-                      $('.text-block-2.account span').remove();
-                      $('#chatmenulink span').remove();
-                    }
+    //                 ajaxCall = true;
+    //                 data = JSON.parse(data);
+    //                 if(data.newmsgcount > 0){
+    //                   let msgdot = '<span style="" class="bg-danger position-absolute text-white rounded-circle px-1 my-ac">'+data.newmsgcount+'</span>'
+    //                   $('.account.w-dropdown ').removeClass('notice-on').addClass('notice-on');
+    //                   $('.text-block-2.account span').remove();
+    //                   $('.text-block-2.account').append(msgdot);
+    //                   $('#chatmenulink span').remove();
+    //                   $('#chatmenulink').append('<span style="top: 10px;right: 15px;font-size: 15px;font-size: 12px; height: 18px!important;width: 14px!important;" class="bg-danger position-absolute text-white rounded-circle px-1">'+data.newmsgcount+'</span>');
+    //                 } else {
+    //                   $('.text-block-2.account span').remove();
+    //                   $('#chatmenulink span').remove();
+    //                 }
 
-                    if(data.newsmgoftradprsn > 0){
-                      let envelop = '<span style="top:3px; right: 0; font-size: 10px; width: 14px!important; height: 20px!important;" class="bg-danger text-white position-absolute rounded-circle px-1">'+data.newsmgoftradprsn+'</span>';
-                      $('.chatenvelop span').remove();
-                      $('.chatenvelop').append(envelop);
+    //                 if(data.newsmgoftradprsn > 0){
+    //                   let envelop = '<span style="top:3px; right: 0; font-size: 10px; width: 14px!important; height: 20px!important;" class="bg-danger text-white position-absolute rounded-circle px-1">'+data.newsmgoftradprsn+'</span>';
+    //                   $('.chatenvelop span').remove();
+    //                   $('.chatenvelop').append(envelop);
 
-                    }
+    //                 }
 
 
-                }
-            });
-        },1500);
+    //             }
+    //         });
+    //     },1500);
 
-      }
-    });
+    //   }
+    // });
 
 </script>
 
